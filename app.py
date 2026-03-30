@@ -389,7 +389,8 @@ def render_article(results, rewrites, sel_original=None):
             parts.append(f"<span class='s-safe'>{txt} </span>")
         else:
             sel = " s-selected" if orig == sel_original else ""
-            parts.append(f"<span class='s-{item[\"label\"]}{sel}' title='Click to select'>{txt}</span> ")
+            label = item["label"]
+            parts.append(f"<span class='s-{label}{sel}' title='Click to select'>{txt}</span> ")
             risky_i += 1
 
     return "".join(parts)
