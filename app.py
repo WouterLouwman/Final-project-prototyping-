@@ -21,7 +21,7 @@ st.markdown("""
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-    .stApp { background: #f7f6f2; color: #1a1a2e; }
+    .stApp { background: #f4f6f9; color: #1a1a2e; }
     .block-container { max-width: 1200px; padding-top: 0; padding-bottom: 3rem; }
 
     /* TOPBAR */
@@ -56,9 +56,27 @@ st.markdown("""
     }
     .page-sub { font-size: 0.9rem; color: #64748b; line-height: 1.6; }
 
+    /* ARTICLE META HEADER */
+    .article-meta-header {
+        background: #1a1a2e;
+        border-radius: 14px;
+        padding: 1rem 1.4rem;
+        margin-bottom: 0.8rem;
+    }
+    .article-meta-title {
+        font-family: 'Playfair Display', serif;
+        font-size: 1.15rem; font-weight: 700;
+        color: #ffffff; line-height: 1.4; margin-bottom: 0.25rem;
+    }
+    .article-meta-year {
+        font-size: 0.78rem; font-weight: 600;
+        color: #f0c95a; letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+
     /* TABS */
     .stTabs [data-baseweb="tab-list"] {
-        background: #eceae4; border-radius: 12px;
+        background: #e2e8f0; border-radius: 12px;
         padding: 3px; gap: 3px; border: none;
     }
     .stTabs [data-baseweb="tab"] {
@@ -73,10 +91,10 @@ st.markdown("""
     /* CARDS */
     .card {
         background: #fff;
-        border: 1px solid #e4e1db;
+        border: 1px solid #dde3ec;
         border-radius: 20px;
         padding: 1.4rem 1.5rem;
-        box-shadow: 0 2px 14px rgba(26,26,46,0.05);
+        box-shadow: 0 2px 12px rgba(26,26,46,0.06);
     }
     .card-dark {
         background: #1a1a2e;
@@ -98,14 +116,13 @@ st.markdown("""
     }
 
     /* METRICS */
-    .metrics-row { display: flex; gap: 0.75rem; margin-bottom: 1.3rem; }
     .mcard {
         flex: 1; background: #fff;
-        border: 1px solid #e4e1db;
+        border: 1px solid #dde3ec;
         border-radius: 16px; padding: 1rem 1.2rem;
-        box-shadow: 0 2px 10px rgba(26,26,46,0.04);
+        box-shadow: 0 2px 8px rgba(26,26,46,0.05);
     }
-    .mcard-dark {
+    .mcard-accent {
         flex: 1; background: #1a1a2e;
         border-radius: 16px; padding: 1rem 1.2rem;
     }
@@ -120,21 +137,21 @@ st.markdown("""
     .mlbl {
         font-size: 0.69rem; font-weight: 600;
         text-transform: uppercase; letter-spacing: 0.09em;
-        color: #94a3b8; margin-top: 0.2rem;
+        color: #64748b; margin-top: 0.2rem;
     }
-    .mlbl-light { color: #4a5568; }
+    .mlbl-light { color: #94a3b8; }
 
     /* PROGRESS */
-    .prog { background: #eceae4; border-radius: 999px; height: 5px; overflow: hidden; margin-top: 0.5rem; }
+    .prog { background: rgba(255,255,255,0.12); border-radius: 999px; height: 5px; overflow: hidden; margin-top: 0.5rem; }
     .prog-bar { height: 5px; border-radius: 999px; background: linear-gradient(90deg, #ef4444 0%, #f59e0b 50%, #22c55e 100%); }
 
     /* ARTICLE */
     .article-display {
-        background: #fdfcfa;
-        border: 1px solid #e4e1db;
+        background: #fafbfc;
+        border: 1px solid #dde3ec;
         border-radius: 16px;
         padding: 1.3rem 1.5rem;
-        line-height: 2.3;
+        line-height: 2.2;
         font-size: 0.97rem;
         color: #1a1a2e;
         min-height: 140px;
@@ -149,35 +166,58 @@ st.markdown("""
         border: 1.5px solid #86efac;
         border-radius: 6px;
         padding: 2px 8px; margin: 1px;
+        font-weight: 500;
     }
     .s-warning {
         display: inline;
         background: #fffbeb; color: #78450a;
-        border: 1.5px solid #fde68a;
+        border: 1.5px solid #fcd34d;
         border-radius: 6px;
         padding: 2px 8px; margin: 1px;
-        cursor: pointer; transition: all 0.12s;
     }
-    .s-warning:hover { background: #fef3c7; box-shadow: 0 2px 10px rgba(245,158,11,0.2); }
     .s-danger {
         display: inline;
-        background: #fff5f5; color: #7f1d1d;
+        background: #fff1f1; color: #7f1d1d;
         border: 1.5px solid #fca5a5;
         border-radius: 6px;
         padding: 2px 8px; margin: 1px;
-        cursor: pointer; transition: all 0.12s;
     }
-    .s-danger:hover { background: #fee2e2; box-shadow: 0 2px 10px rgba(239,68,68,0.2); }
     .s-selected {
         outline: 2.5px solid #1a1a2e !important;
         outline-offset: 2px;
-        box-shadow: 0 2px 12px rgba(26,26,46,0.15) !important;
+        box-shadow: 0 2px 12px rgba(26,26,46,0.18) !important;
+    }
+
+    /* SENTENCE BUTTONS */
+    .sent-btn-danger button {
+        background: #fff1f1 !important; color: #7f1d1d !important;
+        border: 1.5px solid #fca5a5 !important;
+        border-radius: 10px !important;
+        font-size: 0.84rem !important; font-weight: 500 !important;
+        text-align: left !important; justify-content: flex-start !important;
+        padding: 0.5rem 0.9rem !important;
+        transition: all 0.12s !important;
+    }
+    .sent-btn-danger button:hover { background: #fee2e2 !important; border-color: #ef4444 !important; }
+    .sent-btn-warning button {
+        background: #fffbeb !important; color: #78450a !important;
+        border: 1.5px solid #fcd34d !important;
+        border-radius: 10px !important;
+        font-size: 0.84rem !important; font-weight: 500 !important;
+        text-align: left !important; justify-content: flex-start !important;
+        padding: 0.5rem 0.9rem !important;
+        transition: all 0.12s !important;
+    }
+    .sent-btn-warning button:hover { background: #fef3c7 !important; border-color: #f59e0b !important; }
+    .sent-btn-selected button {
+        outline: 2px solid #1a1a2e !important;
+        box-shadow: 0 2px 10px rgba(26,26,46,0.15) !important;
     }
 
     /* LEGEND */
     .legend { display: flex; gap: 0.45rem; flex-wrap: wrap; margin-top: 0.8rem; }
     .lpill {
-        background: #fff; border: 1px solid #e4e1db;
+        background: #fff; border: 1px solid #dde3ec;
         border-radius: 999px; padding: 0.28rem 0.75rem;
         font-size: 0.76rem; color: #64748b;
     }
@@ -188,13 +228,13 @@ st.markdown("""
         color: #94a3b8;
     }
     .inspector-sentence {
-        background: #fdfcfa;
+        background: #fafbfc;
         border-radius: 14px;
         padding: 1rem 1.2rem;
         font-size: 0.97rem;
         line-height: 1.75;
         color: #1a1a2e;
-        border-left: 4px solid #e4e1db;
+        border-left: 4px solid #dde3ec;
         margin-bottom: 1rem;
         font-style: italic;
     }
@@ -456,6 +496,7 @@ for k, v in [
     ("article_text", DEMO), ("chat_history", []),
     ("changes_log", []), ("results", []), ("analyzed", False),
     ("selected_sentence", None), ("rewrites", {}), ("ai_result", None),
+    ("article_title", ""), ("article_year", ""),
 ]:
     if k not in st.session_state: st.session_state[k] = v
 
@@ -510,6 +551,16 @@ tab1, tab2 = st.tabs(["📋  Analyze & Rewrite", "📝  Changes Log"])
 with tab1:
 
     # INPUT
+    meta1, meta2 = st.columns([4, 1])
+    with meta1:
+        article_title = st.text_input("Article title", value=st.session_state.article_title,
+                                      placeholder="Article title or headline...", label_visibility="collapsed")
+        st.session_state.article_title = article_title
+    with meta2:
+        article_year = st.text_input("Year", value=st.session_state.article_year,
+                                     placeholder="Year published (e.g. 2021)", label_visibility="collapsed")
+        st.session_state.article_year = article_year
+
     inc, btnc = st.columns([5.5, 1], gap="small")
     with inc:
         article_text = st.text_area("Article", value=st.session_state.article_text,
@@ -537,10 +588,10 @@ with tab1:
         # METRICS
         mc1, mc2, mc3, mc4 = st.columns(4)
         with mc1:
-            st.markdown(f"""<div class="mcard-dark">
+            st.markdown(f"""<div class="mcard-accent">
                 <div class="mval mval-gold">{freshness}</div>
                 <div class="mlbl mlbl-light">Freshness Score</div>
-                <div class="prog" style="background:rgba(255,255,255,0.08);">
+                <div class="prog">
                     <div class="prog-bar" style="width:{freshness}%;"></div>
                 </div>
             </div>""", unsafe_allow_html=True)
@@ -567,7 +618,16 @@ with tab1:
 
         with left:
             st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.markdown('<div class="slabel"><span class="slabel-dot"></span>Article — click a flagged sentence to select it</div>', unsafe_allow_html=True)
+
+            # Article title + year header
+            title_str = st.session_state.article_title.strip()
+            year_str = st.session_state.article_year.strip()
+            if title_str or year_str:
+                meta_title = f"<div class='article-meta-title'>{escape(title_str)}</div>" if title_str else ""
+                meta_year = f"<div class='article-meta-year'>Published: {escape(year_str)}</div>" if year_str else ""
+                st.markdown(f"<div class='article-meta-header'>{meta_title}{meta_year}</div>", unsafe_allow_html=True)
+
+            st.markdown('<div class="slabel"><span class="slabel-dot"></span>Analysed Article</div>', unsafe_allow_html=True)
 
             article_html = render_article(results, st.session_state.rewrites, st.session_state.selected_sentence)
             st.markdown(f"<div class='article-display'>{article_html}</div>", unsafe_allow_html=True)
@@ -578,40 +638,25 @@ with tab1:
                 <div class="lpill">🟢 Green — rewritten</div>
             </div>""", unsafe_allow_html=True)
 
-            # SENTENCE SELECTOR
+            # SENTENCE SELECTOR — buttons, no dropdown
             if risky:
-                st.markdown("<div style='height:0.8rem'></div>", unsafe_allow_html=True)
-                st.markdown('<div class="slabel">Select a flagged sentence</div>', unsafe_allow_html=True)
-                opts = ["— select a sentence —"]
-                for item in risky:
+                st.markdown("<div style='height:0.9rem'></div>", unsafe_allow_html=True)
+                st.markdown('<div class="slabel"><span class="slabel-dot"></span>Select a flagged sentence to inspect</div>', unsafe_allow_html=True)
+                for idx, item in enumerate(risky):
                     icon = "🔴" if item["label"] == "danger" else "🟡"
-                    short = item["sentence"][:75] + "..." if len(item["sentence"]) > 75 else item["sentence"]
-                    opts.append(f"{icon}  {short}")
-
-                current_sel = st.session_state.selected_sentence
-                current_idx = 0
-                if current_sel:
-                    for i, item in enumerate(risky):
-                        if item["sentence"] == current_sel:
-                            current_idx = i + 1
-                            break
-
-                sel = st.selectbox("Select sentence", opts, index=current_idx, label_visibility="collapsed")
-                if sel != "— select a sentence —":
-                    sel_clean = sel[3:].strip()  # remove icon
-                    for item in risky:
-                        short = item["sentence"][:75] + ("..." if len(item["sentence"]) > 75 else "")
-                        if short == sel_clean:
-                            if item["sentence"] != st.session_state.selected_sentence:
-                                st.session_state.selected_sentence = item["sentence"]
-                                st.session_state.ai_result = None
-                                st.rerun()
-                            break
-                else:
-                    if st.session_state.selected_sentence is not None:
-                        st.session_state.selected_sentence = None
-                        st.session_state.ai_result = None
+                    short = item["sentence"][:90] + "..." if len(item["sentence"]) > 90 else item["sentence"]
+                    is_selected = item["sentence"] == st.session_state.selected_sentence
+                    btn_cls = f"sent-btn-{'danger' if item['label'] == 'danger' else 'warning'}{'  sent-btn-selected' if is_selected else ''}"
+                    st.markdown(f"<div class='{btn_cls}'>", unsafe_allow_html=True)
+                    if st.button(f"{icon}  {short}", key=f"sentbtn_{idx}", use_container_width=True):
+                        if item["sentence"] != st.session_state.selected_sentence:
+                            st.session_state.selected_sentence = item["sentence"]
+                            st.session_state.ai_result = None
+                        else:
+                            st.session_state.selected_sentence = None
+                            st.session_state.ai_result = None
                         st.rerun()
+                    st.markdown("</div>", unsafe_allow_html=True)
             else:
                 st.markdown("<div style='margin-top:0.8rem;font-size:0.88rem;color:#22c55e;font-weight:600;'>✅ All flagged sentences have been rewritten!</div>", unsafe_allow_html=True)
 
@@ -683,7 +728,7 @@ with tab1:
                 st.markdown("""<div class="inspector-empty">
                     <div style='font-size:2rem;margin-bottom:0.5rem;'>👆</div>
                     <div style='font-size:0.9rem;font-weight:600;color:#64748b;margin-bottom:0.2rem;'>Select a flagged sentence</div>
-                    <div style='font-size:0.82rem;'>Choose from the dropdown on the left to inspect and rewrite it.</div>
+                    <div style='font-size:0.82rem;'>Click one of the flagged sentences on the left to inspect and rewrite it.</div>
                 </div>""", unsafe_allow_html=True)
 
             st.markdown('</div>', unsafe_allow_html=True)
