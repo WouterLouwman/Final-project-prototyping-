@@ -665,22 +665,19 @@ with tab1:
         art_col, chat_col = st.columns([1.6, 1.0], gap="large")
 
         with art_col:
-            # Hidden input bridge for JS clicks
-            st.markdown('<div class="hidden-sent-input">', unsafe_allow_html=True)
-            raw_sel = st.text_input("__sentsel__", key="sent_sel_input",
-                                    placeholder="__SENTENCE_SELECT__",
-                                    label_visibility="collapsed")
+            # Hidden buttons — JS clicks these to trigger Streamlit reruns reliably
+            st.markdown('<div style="visibility:hidden;position:absolute;width:0;height:0;overflow:hidden;">', unsafe_allow_html=True)
+            btn_clicks = [st.button(f"§{i}§", key=f"hbtn_{i}") for i in range(len(results))]
             st.markdown('</div>', unsafe_allow_html=True)
 
-            if raw_sel and raw_sel.isdigit():
-                clicked_idx = int(raw_sel)
-                if 0 <= clicked_idx < len(results) and results[clicked_idx]["label"] != "safe":
-                    clicked_sent = results[clicked_idx]["sentence"]
-                    if clicked_sent not in st.session_state.rewrites:
-                        if clicked_sent != st.session_state.selected_sentence:
-                            st.session_state.selected_sentence = clicked_sent
-                            st.session_state.ai_result = None
-                            st.rerun()
+            for i, clicked in enumerate(btn_clicks):
+                if clicked and results[i]["label"] != "safe" and results[i]["sentence"] not in st.session_state.rewrites:
+                    if results[i]["sentence"] != st.session_state.selected_sentence:
+                        st.session_state.selected_sentence = results[i]["sentence"]
+                    else:
+                        st.session_state.selected_sentence = None
+                    st.session_state.ai_result = None
+                    st.rerun()
 
             # ARTICLE
             st.markdown('<div class="card">', unsafe_allow_html=True)
@@ -702,11 +699,12 @@ with tab1:
     el.addEventListener('click',function(){{
       var idx=this.getAttribute('data-sent-idx');
       try{{
-        var inputs=window.parent.document.querySelectorAll('input[placeholder="__SENTENCE_SELECT__"]');
-        if(inputs.length>0){{
-          var s=Object.getOwnPropertyDescriptor(window.parent.HTMLInputElement.prototype,'value').set;
-          s.call(inputs[0],idx);
-          inputs[0].dispatchEvent(new Event('input',{{bubbles:true}}));
+        var btns=window.parent.document.querySelectorAll('button');
+        for(var b=0;b<btns.length;b++){{
+          if(btns[b].innerText.trim()==='§'+idx+'§'){{
+            btns[b].click();
+            return;
+          }}
         }}
       }}catch(e){{}}
     }});
