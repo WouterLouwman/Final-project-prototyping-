@@ -666,7 +666,7 @@ with tab1:
 
         with art_col:
             # Hidden buttons — JS clicks these to trigger Streamlit reruns reliably
-            st.markdown('<div style="visibility:hidden;position:absolute;width:0;height:0;overflow:hidden;">', unsafe_allow_html=True)
+            st.markdown('<div style="position:fixed;top:-9999px;left:-9999px;opacity:0;pointer-events:none;">', unsafe_allow_html=True)
             btn_clicks = [st.button(f"§{i}§", key=f"hbtn_{i}") for i in range(len(results))]
             st.markdown('</div>', unsafe_allow_html=True)
 
@@ -753,20 +753,23 @@ with tab1:
                         st.markdown('<div class="slabel">New sentence</div>', unsafe_allow_html=True)
                         st.markdown(f"<div class='ai-new-sentence'>{escape(res['rewrite'])}</div>", unsafe_allow_html=True)
                     if res.get("source_name"):
-                        st.markdown('<div class="slabel">Verify here</div>', unsafe_allow_html=True)
-                        src_article = res.get("source_article", "")
-                        src_author  = res.get("source_author", "")
-                        src_year    = res.get("source_year", "")
-                        meta_parts = []
-                        if src_author and src_author != "N/A": meta_parts.append(f"<span style='font-weight:600;'>{escape(src_author)}</span>")
-                        if src_year   and src_year   != "N/A": meta_parts.append(f"<span style='color:#64748b;'>{escape(src_year)}</span>")
-                        meta_line = " · ".join(meta_parts)
-                        article_line = (f"<div style='font-size:0.87rem;font-style:italic;color:#1a1a2e;margin:0.25rem 0;'>&ldquo;{escape(src_article)}&rdquo;</div>" if src_article and src_article != "N/A" else "")
+                        st.markdown('<div class="slabel">Suggested source to verify</div>', unsafe_allow_html=True)
+                        src_name    = res.get("source_name", "")
+                        src_article = res.get("source_article", "").strip().strip('"').strip("'")
+                        src_author  = res.get("source_author", "").strip()
+                        src_year    = res.get("source_year", "").strip()
+                        src_what    = res.get("source_what", "").strip()
+                        rows = ""
+                        if src_article and src_article not in ("N/A", ""):
+                            rows += f"<tr><td style='color:#64748b;width:80px;padding:3px 0;font-size:0.78rem;'>Article</td><td style='font-style:italic;font-size:0.85rem;padding:3px 0;'>&ldquo;{escape(src_article)}&rdquo;</td></tr>"
+                        if src_author and src_author not in ("N/A", ""):
+                            rows += f"<tr><td style='color:#64748b;font-size:0.78rem;padding:3px 0;'>Author</td><td style='font-size:0.85rem;font-weight:600;padding:3px 0;'>{escape(src_author)}</td></tr>"
+                        if src_year and src_year not in ("N/A", ""):
+                            rows += f"<tr><td style='color:#64748b;font-size:0.78rem;padding:3px 0;'>Year</td><td style='font-size:0.85rem;padding:3px 0;'>{escape(src_year)}</td></tr>"
                         st.markdown(f"""<div class="source-card">
-                            <div class="source-name">→ {escape(res['source_name'])}</div>
-                            {article_line}
-                            <div style='font-size:0.78rem;color:#64748b;margin-top:0.1rem;'>{meta_line}</div>
-                            <div class="source-desc" style='margin-top:0.4rem;'>{escape(res.get('source_what',''))}</div>
+                            <div style='font-weight:700;font-size:0.95rem;color:#1d4ed8;margin-bottom:0.5rem;'>📰 {escape(src_name)}</div>
+                            <table style='border-collapse:collapse;width:100%;'>{rows}</table>
+                            <div style='font-size:0.82rem;color:#475569;margin-top:0.5rem;border-top:1px solid #e0eaff;padding-top:0.4rem;'>{escape(src_what)}</div>
                         </div>""", unsafe_allow_html=True)
                     st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
                     if st.button("✅  Accept & replace sentence", use_container_width=True, key="accept_btn"):
@@ -869,22 +872,23 @@ with tab2:
                 <div class="diff-a">{escape(c['rewrite'])}</div>
             """, unsafe_allow_html=True)
             if c.get("source_name"):
-                src_art = c.get("source_article", "")
-                src_aut = c.get("source_author", "")
-                src_yr  = c.get("source_year", "")
-                art_line = f"<div style='font-size:0.86rem;font-style:italic;color:#1a1a2e;margin:0.25rem 0;'>&ldquo;{escape(src_art)}&rdquo;</div>" if src_art and src_art != "N/A" else ""
-                meta_bits = []
-                if src_aut and src_aut != "N/A": meta_bits.append(f"<strong>{escape(src_aut)}</strong>")
-                if src_yr  and src_yr  != "N/A": meta_bits.append(escape(src_yr))
-                meta_str = " · ".join(meta_bits)
+                src_art = c.get("source_article", "").strip().strip('"').strip("'")
+                src_aut = c.get("source_author", "").strip()
+                src_yr  = c.get("source_year", "").strip()
+                rows = ""
+                if src_art and src_art != "N/A":
+                    rows += f"<tr><td style='color:#64748b;width:80px;font-size:0.78rem;padding:3px 0;'>Article</td><td style='font-style:italic;font-size:0.85rem;padding:3px 0;'>&ldquo;{escape(src_art)}&rdquo;</td></tr>"
+                if src_aut and src_aut != "N/A":
+                    rows += f"<tr><td style='color:#64748b;font-size:0.78rem;padding:3px 0;'>Author</td><td style='font-size:0.85rem;font-weight:600;padding:3px 0;'>{escape(src_aut)}</td></tr>"
+                if src_yr and src_yr != "N/A":
+                    rows += f"<tr><td style='color:#64748b;font-size:0.78rem;padding:3px 0;'>Year</td><td style='font-size:0.85rem;padding:3px 0;'>{escape(src_yr)}</td></tr>"
                 st.markdown(f"""
                 <div style="margin-top:0.8rem;">
                     <div class="diff-lbl" style="color:#1d4ed8;">Suggested source</div>
-                    <div style="background:#f8fbff;border:1px solid #bfdbfe;border-radius:12px;padding:0.7rem 0.9rem;margin-top:0.3rem;">
-                        <div style="font-weight:700;font-size:0.88rem;color:#1d4ed8;">→ {escape(c['source_name'])}</div>
-                        {art_line}
-                        <div style="font-size:0.78rem;color:#64748b;margin-top:0.1rem;">{meta_str}</div>
-                        <div style="font-size:0.81rem;color:#475569;margin-top:0.3rem;">{escape(c.get('source_what',''))}</div>
+                    <div style="background:#f8fbff;border:1px solid #bfdbfe;border-radius:12px;padding:0.8rem 1rem;margin-top:0.3rem;">
+                        <div style="font-weight:700;font-size:0.95rem;color:#1d4ed8;margin-bottom:0.4rem;">📰 {escape(c['source_name'])}</div>
+                        <table style='border-collapse:collapse;width:100%;'>{rows}</table>
+                        <div style="font-size:0.82rem;color:#475569;margin-top:0.4rem;border-top:1px solid #e0eaff;padding-top:0.4rem;">{escape(c.get('source_what',''))}</div>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
