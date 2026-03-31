@@ -374,6 +374,27 @@ st.markdown("""
     }
     .stButton > button:hover { background: #2d2d4e !important; transform: translateY(-1px); }
 
+    /* SENTENCE SELECTION BUTTONS */
+    div.sent-danger .stButton > button {
+        background: #fff1f1 !important; color: #7f1d1d !important;
+        border: 1.5px solid #fca5a5 !important; border-radius: 10px !important;
+        text-align: left !important; font-size: 0.84rem !important;
+        font-weight: 500 !important; padding: 0.55rem 0.9rem !important;
+        transform: none !important;
+    }
+    div.sent-danger .stButton > button:hover { background: #fee2e2 !important; border-color: #ef4444 !important; }
+    div.sent-warning .stButton > button {
+        background: #fffbeb !important; color: #78450a !important;
+        border: 1.5px solid #fcd34d !important; border-radius: 10px !important;
+        text-align: left !important; font-size: 0.84rem !important;
+        font-weight: 500 !important; padding: 0.55rem 0.9rem !important;
+        transform: none !important;
+    }
+    div.sent-warning .stButton > button:hover { background: #fef3c7 !important; border-color: #f59e0b !important; }
+    div.sent-selected .stButton > button {
+        outline: 2.5px solid #1a1a2e !important; outline-offset: 1px !important;
+    }
+
     /* SIDEBAR */
     section[data-testid="stSidebar"] { background: #fff; border-right: 1px solid #e4e1db; }
     section[data-testid="stSidebar"] * { color: #64748b !important; }
@@ -655,22 +676,9 @@ with tab1:
                     is_selected = item["sentence"] == st.session_state.selected_sentence
                     icon = "🔴" if item["label"] == "danger" else "🟡"
                     short = item["sentence"][:85] + ("..." if len(item["sentence"]) > 85 else "")
-                    if item["label"] == "danger":
-                        bg_btn = "#fff1f1" if not is_selected else "#fee2e2"
-                        border_btn = "#fca5a5" if not is_selected else "#ef4444"
-                        color_btn = "#7f1d1d"
-                    else:
-                        bg_btn = "#fffbeb" if not is_selected else "#fef3c7"
-                        border_btn = "#fcd34d" if not is_selected else "#f59e0b"
-                        color_btn = "#78450a"
-                    outline = "outline:2px solid #1a1a2e;outline-offset:1px;" if is_selected else ""
-                    st.markdown(f"""<style>div[data-testid="stButton"]:nth-of-type({idx+1}) button {{
-                        background:{bg_btn} !important; color:{color_btn} !important;
-                        border:1.5px solid {border_btn} !important;
-                        border-radius:10px !important; text-align:left !important;
-                        font-size:0.85rem !important; font-weight:500 !important;
-                        padding:0.55rem 0.9rem !important; {outline}
-                    }}</style>""", unsafe_allow_html=True)
+                    color_cls = "sent-danger" if item["label"] == "danger" else "sent-warning"
+                    sel_cls = " sent-selected" if is_selected else ""
+                    st.markdown(f'<div class="{color_cls}{sel_cls}">', unsafe_allow_html=True)
                     if st.button(f"{icon}  {short}", key=f"sel_{idx}", use_container_width=True):
                         if item["sentence"] != st.session_state.selected_sentence:
                             st.session_state.selected_sentence = item["sentence"]
@@ -679,6 +687,7 @@ with tab1:
                             st.session_state.selected_sentence = None
                             st.session_state.ai_result = None
                         st.rerun()
+                    st.markdown('</div>', unsafe_allow_html=True)
             else:
                 st.markdown("<div style='margin-top:0.8rem;font-size:0.88rem;color:#22c55e;font-weight:600;'>✅ All flagged sentences have been rewritten!</div>", unsafe_allow_html=True)
 
