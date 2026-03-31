@@ -438,15 +438,15 @@ def analyze_sentence(sentence):
     return {"sentence": sentence, "score": score, "label": label, "explanation": explanation, "years": years}
 
 def render_article(results, rewrites, sel_original=None):
-    """Render article with clickable highlighted sentences."""
+    """Render article with highlighted sentences (visual only, no links)."""
     parts = []
-    for i, item in enumerate(results):
+    for item in results:
         orig = item["sentence"]
         txt = escape(orig)
 
         if orig in rewrites:
             new_txt = escape(rewrites[orig])
-            parts.append(f"<span class='s-rewritten' title='Rewritten by AI'>{new_txt}</span> ")
+            parts.append(f"<span class='s-rewritten'>{new_txt}</span> ")
             continue
 
         if item["label"] == "safe":
@@ -454,7 +454,7 @@ def render_article(results, rewrites, sel_original=None):
         else:
             sel = " s-selected" if orig == sel_original else ""
             label = item["label"]
-            parts.append(f"<a href='?sent={i}' class='s-{label}{sel}' title='Click to select and inspect'>{txt}</a> ")
+            parts.append(f"<span class='s-{label}{sel}'>{txt}</span> ")
 
     return "".join(parts)
 
@@ -579,20 +579,6 @@ tab1, tab2 = st.tabs(["📋  Analyze & Rewrite", "📝  Changes Log"])
 # ==================================================
 with tab1:
 
-    # Handle query param — sentence selected by clicking in the article
-    sent_param = st.query_params.get("sent", None)
-    if sent_param is not None and st.session_state.analyzed and st.session_state.results:
-        try:
-            sent_idx = int(sent_param)
-            results_list = st.session_state.results
-            if 0 <= sent_idx < len(results_list) and results_list[sent_idx]["label"] != "safe":
-                new_sel = results_list[sent_idx]["sentence"]
-                if new_sel != st.session_state.selected_sentence:
-                    st.session_state.selected_sentence = new_sel
-                    st.session_state.ai_result = None
-        except (ValueError, IndexError):
-            pass
-
     # INPUT
     inc, btnc = st.columns([5.5, 1], gap="small")
     with inc:
@@ -651,7 +637,7 @@ with tab1:
 
         with left:
             st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.markdown('<div class="slabel"><span class="slabel-dot"></span>Analysed Article — click a highlighted sentence to inspect it</div>', unsafe_allow_html=True)
+            st.markdown('<div class="slabel"><span class="slabel-dot"></span>Analysed Article</div>', unsafe_allow_html=True)
 
             article_html = render_article(results, st.session_state.rewrites, st.session_state.selected_sentence)
             st.markdown(f"<div class='article-display'>{article_html}</div>", unsafe_allow_html=True)
@@ -662,7 +648,38 @@ with tab1:
                 <div class="lpill">🟢 Green — rewritten</div>
             </div>""", unsafe_allow_html=True)
 
-            if not risky:
+            if risky:
+                st.markdown("<div style='height:0.9rem'></div>", unsafe_allow_html=True)
+                st.markdown('<div class="slabel"><span class="slabel-dot"></span>Click a sentence to inspect &amp; rewrite</div>', unsafe_allow_html=True)
+                for idx, item in enumerate(risky):
+                    is_selected = item["sentence"] == st.session_state.selected_sentence
+                    icon = "🔴" if item["label"] == "danger" else "🟡"
+                    short = item["sentence"][:85] + ("..." if len(item["sentence"]) > 85 else "")
+                    if item["label"] == "danger":
+                        bg_btn = "#fff1f1" if not is_selected else "#fee2e2"
+                        border_btn = "#fca5a5" if not is_selected else "#ef4444"
+                        color_btn = "#7f1d1d"
+                    else:
+                        bg_btn = "#fffbeb" if not is_selected else "#fef3c7"
+                        border_btn = "#fcd34d" if not is_selected else "#f59e0b"
+                        color_btn = "#78450a"
+                    outline = "outline:2px solid #1a1a2e;outline-offset:1px;" if is_selected else ""
+                    st.markdown(f"""<style>div[data-testid="stButton"]:nth-of-type({idx+1}) button {{
+                        background:{bg_btn} !important; color:{color_btn} !important;
+                        border:1.5px solid {border_btn} !important;
+                        border-radius:10px !important; text-align:left !important;
+                        font-size:0.85rem !important; font-weight:500 !important;
+                        padding:0.55rem 0.9rem !important; {outline}
+                    }}</style>""", unsafe_allow_html=True)
+                    if st.button(f"{icon}  {short}", key=f"sel_{idx}", use_container_width=True):
+                        if item["sentence"] != st.session_state.selected_sentence:
+                            st.session_state.selected_sentence = item["sentence"]
+                            st.session_state.ai_result = None
+                        else:
+                            st.session_state.selected_sentence = None
+                            st.session_state.ai_result = None
+                        st.rerun()
+            else:
                 st.markdown("<div style='margin-top:0.8rem;font-size:0.88rem;color:#22c55e;font-weight:600;'>✅ All flagged sentences have been rewritten!</div>", unsafe_allow_html=True)
 
             st.markdown('</div>', unsafe_allow_html=True)
@@ -740,7 +757,6 @@ with tab1:
                         })
                         st.session_state.selected_sentence = None
                         st.session_state.ai_result = None
-                        st.query_params.clear()
                         st.rerun()
 
             else:
