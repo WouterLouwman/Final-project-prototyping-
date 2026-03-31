@@ -158,7 +158,7 @@ st.markdown("""
     }
 
     /* SENTENCE STYLES */
-    .s-safe { display: inline; color: #1a1a2e; }
+    .s-safe { display: inline; color: #1a1a2e; text-decoration: none; }
     .s-rewritten {
         display: inline;
         background: #f0fdf4;
@@ -166,26 +166,32 @@ st.markdown("""
         border: 1.5px solid #86efac;
         border-radius: 6px;
         padding: 2px 8px; margin: 1px;
-        font-weight: 500;
+        font-weight: 500; text-decoration: none;
     }
-    .s-warning {
+    a.s-warning, .s-warning {
         display: inline;
         background: #fffbeb; color: #78450a;
         border: 1.5px solid #fcd34d;
         border-radius: 6px;
         padding: 2px 8px; margin: 1px;
+        text-decoration: none; cursor: pointer;
+        transition: all 0.15s;
     }
-    .s-danger {
+    a.s-warning:hover { background: #fef3c7; border-color: #f59e0b; box-shadow: 0 2px 8px rgba(245,158,11,0.25); }
+    a.s-danger, .s-danger {
         display: inline;
         background: #fff1f1; color: #7f1d1d;
         border: 1.5px solid #fca5a5;
         border-radius: 6px;
         padding: 2px 8px; margin: 1px;
+        text-decoration: none; cursor: pointer;
+        transition: all 0.15s;
     }
+    a.s-danger:hover { background: #fee2e2; border-color: #ef4444; box-shadow: 0 2px 8px rgba(239,68,68,0.25); }
     .s-selected {
         outline: 2.5px solid #1a1a2e !important;
         outline-offset: 2px;
-        box-shadow: 0 2px 12px rgba(26,26,46,0.18) !important;
+        box-shadow: 0 2px 12px rgba(26,26,46,0.22) !important;
     }
 
     /* SENTENCE BUTTONS */
@@ -412,14 +418,12 @@ def analyze_sentence(sentence):
     return {"sentence": sentence, "score": score, "label": label, "explanation": explanation, "years": years}
 
 def render_article(results, rewrites, sel_original=None):
-    """Render article with highlights. Rewrites is a dict of original->new sentence."""
+    """Render article with clickable highlighted sentences."""
     parts = []
-    risky_i = 0
-    for item in results:
+    for i, item in enumerate(results):
         orig = item["sentence"]
         txt = escape(orig)
 
-        # Already rewritten
         if orig in rewrites:
             new_txt = escape(rewrites[orig])
             parts.append(f"<span class='s-rewritten' title='Rewritten by AI'>{new_txt}</span> ")
@@ -430,8 +434,7 @@ def render_article(results, rewrites, sel_original=None):
         else:
             sel = " s-selected" if orig == sel_original else ""
             label = item["label"]
-            parts.append(f"<span class='s-{label}{sel}' title='Click to select'>{txt}</span> ")
-            risky_i += 1
+            parts.append(f"<a href='?sent={i}' class='s-{label}{sel}' title='Click to select and inspect'>{txt}</a> ")
 
     return "".join(parts)
 
@@ -446,25 +449,32 @@ The following sentence has been flagged as potentially outdated or time-sensitiv
 
 Your tasks:
 1. Write an improved, accurate replacement sentence in neutral journalistic language. Remove vague time references and outdated claims.
-2. Suggest ONE specific reputable source the journalist should check, and briefly explain what to look for there.
+2. Suggest ONE specific reputable source article the journalist should check to verify the updated claim.
 
 Respond EXACTLY in this format with no extra text:
 REWRITE: [the new sentence]
-SOURCE_NAME: [e.g. Reuters, Eurostat, BBC News]
+SOURCE_NAME: [publication name, e.g. Reuters, Eurostat, BBC News]
+SOURCE_ARTICLE: [title of a specific article or report to look for, or "N/A"]
+SOURCE_AUTHOR: [author name if known, or "N/A"]
+SOURCE_YEAR: [year of the recommended source, or "N/A"]
 SOURCE_WHAT: [one sentence explaining what to look for there]"""
 
     r = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[{"role": "user", "content": prompt}],
-        max_tokens=300, temperature=0.4
+        max_tokens=400, temperature=0.4
     )
     text = r.choices[0].message.content.strip()
-    rewrite, source_name, source_what = "", "", ""
+    rewrite, source_name, source_article, source_author, source_year, source_what = "", "", "", "", "", ""
     for line in text.split("\n"):
         if line.startswith("REWRITE:"): rewrite = line.replace("REWRITE:", "").strip()
         elif line.startswith("SOURCE_NAME:"): source_name = line.replace("SOURCE_NAME:", "").strip()
+        elif line.startswith("SOURCE_ARTICLE:"): source_article = line.replace("SOURCE_ARTICLE:", "").strip()
+        elif line.startswith("SOURCE_AUTHOR:"): source_author = line.replace("SOURCE_AUTHOR:", "").strip()
+        elif line.startswith("SOURCE_YEAR:"): source_year = line.replace("SOURCE_YEAR:", "").strip()
         elif line.startswith("SOURCE_WHAT:"): source_what = line.replace("SOURCE_WHAT:", "").strip()
-    return {"rewrite": rewrite, "source_name": source_name, "source_what": source_what}
+    return {"rewrite": rewrite, "source_name": source_name, "source_article": source_article,
+            "source_author": source_author, "source_year": source_year, "source_what": source_what}
 
 def ai_chat(messages, article):
     sys = f"""You are TimeTravel, an AI editorial assistant for a news agency.
@@ -496,7 +506,6 @@ for k, v in [
     ("article_text", DEMO), ("chat_history", []),
     ("changes_log", []), ("results", []), ("analyzed", False),
     ("selected_sentence", None), ("rewrites", {}), ("ai_result", None),
-    ("article_title", ""), ("article_year", ""),
 ]:
     if k not in st.session_state: st.session_state[k] = v
 
@@ -550,17 +559,21 @@ tab1, tab2 = st.tabs(["📋  Analyze & Rewrite", "📝  Changes Log"])
 # ==================================================
 with tab1:
 
-    # INPUT
-    meta1, meta2 = st.columns([4, 1])
-    with meta1:
-        article_title = st.text_input("Article title", value=st.session_state.article_title,
-                                      placeholder="Article title or headline...", label_visibility="collapsed")
-        st.session_state.article_title = article_title
-    with meta2:
-        article_year = st.text_input("Year", value=st.session_state.article_year,
-                                     placeholder="Year published (e.g. 2021)", label_visibility="collapsed")
-        st.session_state.article_year = article_year
+    # Handle query param — sentence selected by clicking in the article
+    sent_param = st.query_params.get("sent", None)
+    if sent_param is not None and st.session_state.analyzed and st.session_state.results:
+        try:
+            sent_idx = int(sent_param)
+            results_list = st.session_state.results
+            if 0 <= sent_idx < len(results_list) and results_list[sent_idx]["label"] != "safe":
+                new_sel = results_list[sent_idx]["sentence"]
+                if new_sel != st.session_state.selected_sentence:
+                    st.session_state.selected_sentence = new_sel
+                    st.session_state.ai_result = None
+        except (ValueError, IndexError):
+            pass
 
+    # INPUT
     inc, btnc = st.columns([5.5, 1], gap="small")
     with inc:
         article_text = st.text_area("Article", value=st.session_state.article_text,
@@ -618,16 +631,7 @@ with tab1:
 
         with left:
             st.markdown('<div class="card">', unsafe_allow_html=True)
-
-            # Article title + year header
-            title_str = st.session_state.article_title.strip()
-            year_str = st.session_state.article_year.strip()
-            if title_str or year_str:
-                meta_title = f"<div class='article-meta-title'>{escape(title_str)}</div>" if title_str else ""
-                meta_year = f"<div class='article-meta-year'>Published: {escape(year_str)}</div>" if year_str else ""
-                st.markdown(f"<div class='article-meta-header'>{meta_title}{meta_year}</div>", unsafe_allow_html=True)
-
-            st.markdown('<div class="slabel"><span class="slabel-dot"></span>Analysed Article</div>', unsafe_allow_html=True)
+            st.markdown('<div class="slabel"><span class="slabel-dot"></span>Analysed Article — click a highlighted sentence to inspect it</div>', unsafe_allow_html=True)
 
             article_html = render_article(results, st.session_state.rewrites, st.session_state.selected_sentence)
             st.markdown(f"<div class='article-display'>{article_html}</div>", unsafe_allow_html=True)
@@ -638,26 +642,7 @@ with tab1:
                 <div class="lpill">🟢 Green — rewritten</div>
             </div>""", unsafe_allow_html=True)
 
-            # SENTENCE SELECTOR — buttons, no dropdown
-            if risky:
-                st.markdown("<div style='height:0.9rem'></div>", unsafe_allow_html=True)
-                st.markdown('<div class="slabel"><span class="slabel-dot"></span>Select a flagged sentence to inspect</div>', unsafe_allow_html=True)
-                for idx, item in enumerate(risky):
-                    icon = "🔴" if item["label"] == "danger" else "🟡"
-                    short = item["sentence"][:90] + "..." if len(item["sentence"]) > 90 else item["sentence"]
-                    is_selected = item["sentence"] == st.session_state.selected_sentence
-                    btn_cls = f"sent-btn-{'danger' if item['label'] == 'danger' else 'warning'}{'  sent-btn-selected' if is_selected else ''}"
-                    st.markdown(f"<div class='{btn_cls}'>", unsafe_allow_html=True)
-                    if st.button(f"{icon}  {short}", key=f"sentbtn_{idx}", use_container_width=True):
-                        if item["sentence"] != st.session_state.selected_sentence:
-                            st.session_state.selected_sentence = item["sentence"]
-                            st.session_state.ai_result = None
-                        else:
-                            st.session_state.selected_sentence = None
-                            st.session_state.ai_result = None
-                        st.rerun()
-                    st.markdown("</div>", unsafe_allow_html=True)
-            else:
+            if not risky:
                 st.markdown("<div style='margin-top:0.8rem;font-size:0.88rem;color:#22c55e;font-weight:600;'>✅ All flagged sentences have been rewritten!</div>", unsafe_allow_html=True)
 
             st.markdown('</div>', unsafe_allow_html=True)
@@ -702,9 +687,19 @@ with tab1:
 
                     if res.get("source_name"):
                         st.markdown('<div class="slabel">Verify here</div>', unsafe_allow_html=True)
+                        src_article = res.get("source_article", "")
+                        src_author  = res.get("source_author", "")
+                        src_year    = res.get("source_year", "")
+                        meta_parts = []
+                        if src_author and src_author != "N/A": meta_parts.append(f"<span style='font-weight:600;'>{escape(src_author)}</span>")
+                        if src_year   and src_year   != "N/A": meta_parts.append(f"<span style='color:#64748b;'>{escape(src_year)}</span>")
+                        meta_line = " · ".join(meta_parts)
+                        article_line = (f"<div style='font-size:0.87rem;font-style:italic;color:#1a1a2e;margin:0.25rem 0;'>&ldquo;{escape(src_article)}&rdquo;</div>" if src_article and src_article != "N/A" else "")
                         st.markdown(f"""<div class="source-card">
                             <div class="source-name">→ {escape(res['source_name'])}</div>
-                            <div class="source-desc">{escape(res.get('source_what',''))}</div>
+                            {article_line}
+                            <div style='font-size:0.78rem;color:#64748b;margin-top:0.1rem;'>{meta_line}</div>
+                            <div class="source-desc" style='margin-top:0.4rem;'>{escape(res.get('source_what',''))}</div>
                         </div>""", unsafe_allow_html=True)
 
                     st.markdown("<div style='height:0.6rem'></div>", unsafe_allow_html=True)
@@ -717,11 +712,15 @@ with tab1:
                         st.session_state.changes_log.append({
                             "original": orig, "rewrite": new,
                             "source_name": res.get("source_name",""),
+                            "source_article": res.get("source_article",""),
+                            "source_author": res.get("source_author",""),
+                            "source_year": res.get("source_year",""),
                             "source_what": res.get("source_what",""),
                             "label": sel_item["label"], "score": sel_item["score"]
                         })
                         st.session_state.selected_sentence = None
                         st.session_state.ai_result = None
+                        st.query_params.clear()
                         st.rerun()
 
             else:
@@ -813,12 +812,22 @@ with tab2:
                 <div class="diff-a">{escape(c['rewrite'])}</div>
             """, unsafe_allow_html=True)
             if c.get("source_name"):
+                src_art = c.get("source_article", "")
+                src_aut = c.get("source_author", "")
+                src_yr  = c.get("source_year", "")
+                art_line = f"<div style='font-size:0.86rem;font-style:italic;color:#1a1a2e;margin:0.25rem 0;'>&ldquo;{escape(src_art)}&rdquo;</div>" if src_art and src_art != "N/A" else ""
+                meta_bits = []
+                if src_aut and src_aut != "N/A": meta_bits.append(f"<strong>{escape(src_aut)}</strong>")
+                if src_yr  and src_yr  != "N/A": meta_bits.append(escape(src_yr))
+                meta_str = " · ".join(meta_bits)
                 st.markdown(f"""
                 <div style="margin-top:0.8rem;">
                     <div class="diff-lbl" style="color:#1d4ed8;">Suggested source</div>
                     <div style="background:#f8fbff;border:1px solid #bfdbfe;border-radius:12px;padding:0.7rem 0.9rem;margin-top:0.3rem;">
                         <div style="font-weight:700;font-size:0.88rem;color:#1d4ed8;">→ {escape(c['source_name'])}</div>
-                        <div style="font-size:0.81rem;color:#475569;margin-top:0.2rem;">{escape(c.get('source_what',''))}</div>
+                        {art_line}
+                        <div style="font-size:0.78rem;color:#64748b;margin-top:0.1rem;">{meta_str}</div>
+                        <div style="font-size:0.81rem;color:#475569;margin-top:0.3rem;">{escape(c.get('source_what',''))}</div>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
