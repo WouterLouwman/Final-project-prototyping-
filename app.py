@@ -284,26 +284,45 @@ st.markdown("""
     /* CHAT */
     .chat-box {
         display: flex; flex-direction: column;
-        gap: 0.65rem; max-height: 280px;
-        overflow-y: auto; padding: 0.2rem 0 0.5rem 0;
+        gap: 0.6rem; max-height: 260px;
+        overflow-y: auto; padding: 0.2rem 0 0.4rem 0;
     }
     .cb-user {
         background: #1a1a2e; color: #fff;
-        border-radius: 14px 14px 3px 14px;
-        padding: 0.6rem 0.85rem; font-size: 0.85rem;
-        line-height: 1.55; max-width: 88%; margin-left: auto;
+        border-radius: 16px 16px 4px 16px;
+        padding: 0.65rem 1rem; font-size: 0.85rem;
+        line-height: 1.55; max-width: 85%; margin-left: auto;
     }
     .cb-ai {
-        background: rgba(255,255,255,0.07);
-        border: 1px solid rgba(255,255,255,0.1);
-        color: #e2e8f0;
-        border-radius: 14px 14px 14px 3px;
-        padding: 0.6rem 0.85rem; font-size: 0.85rem;
-        line-height: 1.55; max-width: 88%;
+        background: #f1f4f8;
+        border: 1px solid #dde3ec;
+        color: #1a1a2e;
+        border-radius: 16px 16px 16px 4px;
+        padding: 0.65rem 1rem; font-size: 0.85rem;
+        line-height: 1.55; max-width: 85%;
     }
-    .cn { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #4a5568; margin-bottom: 0.2rem; }
-    .cn-r { text-align: right; color: #4a5568; }
-    .cn-ai { color: #f0c95a !important; }
+    .cn { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; margin-bottom: 0.2rem; }
+    .cn-r { text-align: right; color: #94a3b8; }
+    .cn-ai { color: #1a1a2e !important; }
+
+    /* CHAT INPUT ROW */
+    .chat-input-row {
+        display: flex; align-items: center; gap: 0.5rem;
+        background: #f1f4f8; border: 1.5px solid #dde3ec;
+        border-radius: 14px; padding: 0.3rem 0.4rem 0.3rem 1rem;
+        margin-top: 0.7rem;
+    }
+
+    /* QUICK CHIPS */
+    .chip-row { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.6rem; }
+    .chip button {
+        background: #fff !important; color: #1a1a2e !important;
+        border: 1.5px solid #dde3ec !important;
+        border-radius: 999px !important;
+        font-size: 0.78rem !important; font-weight: 500 !important;
+        padding: 0.3rem 0.85rem !important;
+    }
+    .chip button:hover { background: #f1f4f8 !important; border-color: #94a3b8 !important; }
 
     /* CHANGES LOG */
     .clog-card {
@@ -337,13 +356,14 @@ st.markdown("""
         font-family: 'Inter', sans-serif !important; font-size: 0.95rem !important;
     }
     .stTextInput input {
-        background: rgba(255,255,255,0.08) !important;
-        color: #e2e8f0 !important;
+        background: transparent !important;
+        color: #1a1a2e !important;
         border-radius: 10px !important;
-        border: 1px solid rgba(255,255,255,0.12) !important;
+        border: none !important;
+        box-shadow: none !important;
         font-family: 'Inter', sans-serif !important;
     }
-    .stTextInput input::placeholder { color: #4a5568 !important; }
+    .stTextInput input::placeholder { color: #94a3b8 !important; }
 
     .stButton > button {
         border-radius: 10px !important; padding: 0.55rem 1.1rem !important;
@@ -733,8 +753,8 @@ with tab1:
             st.markdown('</div>', unsafe_allow_html=True)
 
             # CHAT
-            st.markdown('<div class="card-dark">', unsafe_allow_html=True)
-            st.markdown('<div class="slabel" style="color:#4a5568;"><span class="slabel-dot"></span>AI Assistant</div>', unsafe_allow_html=True)
+            st.markdown('<div class="card" style="margin-top:0.8rem;">', unsafe_allow_html=True)
+            st.markdown('<div class="slabel"><span class="slabel-dot"></span>AI Assistant</div>', unsafe_allow_html=True)
 
             if st.session_state.chat_history:
                 chat_html = '<div class="chat-box">'
@@ -746,14 +766,15 @@ with tab1:
                 chat_html += '</div>'
                 st.markdown(chat_html, unsafe_allow_html=True)
             else:
-                st.markdown('<div style="text-align:center;padding:0.8rem 0;font-size:0.82rem;color:#4a5568;">Ask anything about your article</div>', unsafe_allow_html=True)
+                st.markdown('<div style="text-align:center;padding:1rem 0 0.5rem;font-size:0.84rem;color:#94a3b8;">Ask anything about your article</div>', unsafe_allow_html=True)
 
-            st.markdown("<div style='height:0.3rem'></div>", unsafe_allow_html=True)
-            ci, cb = st.columns([4, 1], gap="small")
+            st.markdown("<div class='chat-input-row'>", unsafe_allow_html=True)
+            ci, cb = st.columns([5, 1], gap="small")
             with ci:
-                user_msg = st.text_input("msg", placeholder="Ask about your article...", label_visibility="collapsed", key="chat_in")
+                user_msg = st.text_input("msg", placeholder="Ask a question...", label_visibility="collapsed", key="chat_in")
             with cb:
-                send = st.button("→", use_container_width=True, key="send_btn")
+                send = st.button("Send", use_container_width=True, key="send_btn")
+            st.markdown("</div>", unsafe_allow_html=True)
 
             if send and user_msg.strip():
                 st.session_state.chat_history.append({"role": "user", "content": user_msg.strip()})
@@ -762,22 +783,27 @@ with tab1:
                 st.session_state.chat_history.append({"role": "assistant", "content": reply})
                 st.rerun()
 
-            st.markdown("<div style='height:0.3rem'></div>", unsafe_allow_html=True)
+            st.markdown("<div class='chip-row'>", unsafe_allow_html=True)
             q1, q2 = st.columns(2)
             with q1:
+                st.markdown("<div class='chip'>", unsafe_allow_html=True)
                 if st.button("What's outdated?", use_container_width=True, key="qp1"):
                     st.session_state.chat_history.append({"role": "user", "content": "Which sentences in this article might be outdated?"})
                     with st.spinner(""):
                         reply = ai_chat(st.session_state.chat_history, st.session_state.article_text)
                     st.session_state.chat_history.append({"role": "assistant", "content": reply})
                     st.rerun()
+                st.markdown("</div>", unsafe_allow_html=True)
             with q2:
+                st.markdown("<div class='chip'>", unsafe_allow_html=True)
                 if st.button("Suggest sources", use_container_width=True, key="qp2"):
                     st.session_state.chat_history.append({"role": "user", "content": "Suggest reputable sources to verify the key claims in this article."})
                     with st.spinner(""):
                         reply = ai_chat(st.session_state.chat_history, st.session_state.article_text)
                     st.session_state.chat_history.append({"role": "assistant", "content": reply})
                     st.rerun()
+                st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
 
             st.markdown('</div>', unsafe_allow_html=True)
 
