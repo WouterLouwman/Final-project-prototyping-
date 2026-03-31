@@ -1,7 +1,11 @@
+import os
 import streamlit as st
 import re
 import datetime
+import json
 from html import escape
+from typing import Any, Dict, List, Optional
+
 from openai import OpenAI
 import streamlit.components.v1 as components
 
@@ -12,7 +16,21 @@ st.set_page_config(
 )
 
 CURRENT_YEAR = datetime.datetime.now().year
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+client = OpenAI(api_key=st.secrets.get("OPENAI_API_KEY", os.getenv("OPENAI_API_KEY")))
+
+# --------------------------------------------------
+# CONFIG
+# --------------------------------------------------
+RESEARCH_MODEL = "gpt-5-mini"
+CHAT_MODEL = "gpt-5-mini"
+MAX_SOURCE_COUNT = 3
+MIN_ACCEPT_CONFIDENCE = 0.70
+RESEARCH_CONFIDENCE_RETRY_THRESHOLD = 0.65
+
+PREFERRED_SOURCE_HINT = (
+    "Prefer Reuters, AP, BBC, FT, official government/statistics sources, major company filings, "
+    "or primary institutional sources when relevant. Avoid low-quality aggregators, SEO spam, and opinion blogs."
+)
 
 # --------------------------------------------------
 # STYLING
@@ -25,7 +43,6 @@ st.markdown("""
     .stApp { background: #f4f6f9; color: #1a1a2e; }
     .block-container { max-width: 1200px; padding-top: 0; padding-bottom: 3rem; }
 
-    /* TOPBAR */
     .topbar {
         background: #1a1a2e;
         padding: 1rem 2rem;
@@ -48,7 +65,6 @@ st.markdown("""
         border-radius: 999px; padding: 0.28rem 0.8rem;
     }
 
-    /* PAGE HEADER */
     .page-header { margin-bottom: 1.8rem; }
     .page-title {
         font-family: 'Playfair Display', serif;
@@ -57,25 +73,6 @@ st.markdown("""
     }
     .page-sub { font-size: 0.9rem; color: #64748b; line-height: 1.6; }
 
-    /* ARTICLE META HEADER */
-    .article-meta-header {
-        background: #1a1a2e;
-        border-radius: 14px;
-        padding: 1rem 1.4rem;
-        margin-bottom: 0.8rem;
-    }
-    .article-meta-title {
-        font-family: 'Playfair Display', serif;
-        font-size: 1.15rem; font-weight: 700;
-        color: #ffffff; line-height: 1.4; margin-bottom: 0.25rem;
-    }
-    .article-meta-year {
-        font-size: 0.78rem; font-weight: 600;
-        color: #f0c95a; letter-spacing: 0.06em;
-        text-transform: uppercase;
-    }
-
-    /* TABS */
     .stTabs [data-baseweb="tab-list"] {
         background: #e2e8f0; border-radius: 12px;
         padding: 3px; gap: 3px; border: none;
@@ -89,7 +86,6 @@ st.markdown("""
     .stTabs [data-baseweb="tab-border"] { display: none; }
     .stTabs [data-baseweb="tab-panel"] { padding-top: 1.2rem; }
 
-    /* CARDS */
     .card {
         background: #fff;
         border: 1px solid #dde3ec;
@@ -97,13 +93,7 @@ st.markdown("""
         padding: 1.4rem 1.5rem;
         box-shadow: 0 2px 12px rgba(26,26,46,0.06);
     }
-    .card-dark {
-        background: #1a1a2e;
-        border-radius: 20px;
-        padding: 1.4rem 1.5rem;
-    }
 
-    /* SLABEL */
     .slabel {
         font-size: 0.67rem; font-weight: 700;
         text-transform: uppercase; letter-spacing: 0.11em;
@@ -116,7 +106,6 @@ st.markdown("""
         display: inline-block;
     }
 
-    /* METRICS */
     .mcard {
         flex: 1; background: #fff;
         border: 1px solid #dde3ec;
@@ -142,23 +131,9 @@ st.markdown("""
     }
     .mlbl-light { color: #94a3b8; }
 
-    /* PROGRESS */
     .prog { background: rgba(255,255,255,0.12); border-radius: 999px; height: 5px; overflow: hidden; margin-top: 0.5rem; }
     .prog-bar { height: 5px; border-radius: 999px; background: linear-gradient(90deg, #ef4444 0%, #f59e0b 50%, #22c55e 100%); }
 
-    /* ARTICLE */
-    .article-display {
-        background: #fafbfc;
-        border: 1px solid #dde3ec;
-        border-radius: 16px;
-        padding: 1.3rem 1.5rem;
-        line-height: 2.2;
-        font-size: 0.97rem;
-        color: #1a1a2e;
-        min-height: 140px;
-    }
-
-    /* SENTENCE STYLES */
     .s-safe { display: inline; color: #1a1a2e; text-decoration: none; }
     .s-rewritten {
         display: inline;
@@ -169,7 +144,7 @@ st.markdown("""
         padding: 2px 8px; margin: 1px;
         font-weight: 500; text-decoration: none;
     }
-    a.s-warning, .s-warning {
+    .s-warning {
         display: inline;
         background: #fffbeb; color: #78450a;
         border: 1.5px solid #fcd34d;
@@ -178,8 +153,8 @@ st.markdown("""
         text-decoration: none; cursor: pointer;
         transition: all 0.15s;
     }
-    a.s-warning:hover { background: #fef3c7; border-color: #f59e0b; box-shadow: 0 2px 8px rgba(245,158,11,0.25); }
-    a.s-danger, .s-danger {
+    .s-warning:hover { background: #fef3c7; border-color: #f59e0b; box-shadow: 0 2px 8px rgba(245,158,11,0.25); }
+    .s-danger {
         display: inline;
         background: #fff1f1; color: #7f1d1d;
         border: 1.5px solid #fca5a5;
@@ -188,40 +163,13 @@ st.markdown("""
         text-decoration: none; cursor: pointer;
         transition: all 0.15s;
     }
-    a.s-danger:hover { background: #fee2e2; border-color: #ef4444; box-shadow: 0 2px 8px rgba(239,68,68,0.25); }
+    .s-danger:hover { background: #fee2e2; border-color: #ef4444; box-shadow: 0 2px 8px rgba(239,68,68,0.25); }
     .s-selected {
         outline: 2.5px solid #1a1a2e !important;
         outline-offset: 2px;
         box-shadow: 0 2px 12px rgba(26,26,46,0.22) !important;
     }
 
-    /* SENTENCE BUTTONS */
-    .sent-btn-danger button {
-        background: #fff1f1 !important; color: #7f1d1d !important;
-        border: 1.5px solid #fca5a5 !important;
-        border-radius: 10px !important;
-        font-size: 0.84rem !important; font-weight: 500 !important;
-        text-align: left !important; justify-content: flex-start !important;
-        padding: 0.5rem 0.9rem !important;
-        transition: all 0.12s !important;
-    }
-    .sent-btn-danger button:hover { background: #fee2e2 !important; border-color: #ef4444 !important; }
-    .sent-btn-warning button {
-        background: #fffbeb !important; color: #78450a !important;
-        border: 1.5px solid #fcd34d !important;
-        border-radius: 10px !important;
-        font-size: 0.84rem !important; font-weight: 500 !important;
-        text-align: left !important; justify-content: flex-start !important;
-        padding: 0.5rem 0.9rem !important;
-        transition: all 0.12s !important;
-    }
-    .sent-btn-warning button:hover { background: #fef3c7 !important; border-color: #f59e0b !important; }
-    .sent-btn-selected button {
-        outline: 2px solid #1a1a2e !important;
-        box-shadow: 0 2px 10px rgba(26,26,46,0.15) !important;
-    }
-
-    /* LEGEND */
     .legend { display: flex; gap: 0.45rem; flex-wrap: wrap; margin-top: 0.8rem; }
     .lpill {
         background: #fff; border: 1px solid #dde3ec;
@@ -229,11 +177,6 @@ st.markdown("""
         font-size: 0.76rem; color: #64748b;
     }
 
-    /* INSPECTOR PANEL */
-    .inspector-empty {
-        text-align: center; padding: 2.5rem 1rem;
-        color: #94a3b8;
-    }
     .inspector-sentence {
         background: #fafbfc;
         border-radius: 14px;
@@ -258,8 +201,8 @@ st.markdown("""
     .b-warning { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
     .b-ai { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
     .b-done { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+    .b-review { background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; }
 
-    /* AI RESULT */
     .ai-new-sentence {
         background: #f0fdf4;
         border: 1.5px solid #86efac;
@@ -275,6 +218,7 @@ st.markdown("""
         border: 1px solid #bfdbfe;
         border-radius: 14px;
         padding: 0.8rem 1rem;
+        margin-bottom: 0.6rem;
     }
     .source-name {
         font-weight: 700; font-size: 0.9rem;
@@ -282,7 +226,6 @@ st.markdown("""
     }
     .source-desc { font-size: 0.82rem; color: #475569; line-height: 1.5; }
 
-    /* CHAT */
     .chat-box {
         display: flex; flex-direction: column;
         gap: 0.6rem; max-height: 260px;
@@ -306,7 +249,6 @@ st.markdown("""
     .cn-r { text-align: right; color: #94a3b8; }
     .cn-ai { color: #1a1a2e !important; }
 
-    /* CHAT INPUT ROW */
     .chat-input-row {
         display: flex; align-items: center; gap: 0.5rem;
         background: #f1f4f8; border: 1.5px solid #dde3ec;
@@ -314,7 +256,6 @@ st.markdown("""
         margin-top: 0.7rem;
     }
 
-    /* QUICK CHIPS */
     .chip-row { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.6rem; }
     .chip button {
         background: #fff !important; color: #1a1a2e !important;
@@ -325,7 +266,6 @@ st.markdown("""
     }
     .chip button:hover { background: #f1f4f8 !important; border-color: #94a3b8 !important; }
 
-    /* CHANGES LOG */
     .clog-card {
         background: #fff; border: 1px solid #e4e1db;
         border-radius: 18px; padding: 1.3rem 1.4rem;
@@ -350,7 +290,6 @@ st.markdown("""
         margin-bottom: 0.3rem;
     }
 
-    /* INPUTS */
     textarea, .stTextArea textarea {
         background: #fff !important; color: #1a1a2e !important;
         border-radius: 14px !important; border: 1.5px solid #e4e1db !important;
@@ -375,31 +314,6 @@ st.markdown("""
     }
     .stButton > button:hover { background: #2d2d4e !important; transform: translateY(-1px); }
 
-    /* SENTENCE BADGE BUTTONS */
-    div.badge-danger .stButton > button {
-        background: #fff1f1 !important; color: #7f1d1d !important;
-        border: 1.5px solid #fca5a5 !important;
-        border-radius: 999px !important;
-        font-size: 0.78rem !important; font-weight: 700 !important;
-        padding: 0.25rem 0.65rem !important;
-        min-width: 2rem !important; transform: none !important;
-    }
-    div.badge-danger .stButton > button:hover { background: #fee2e2 !important; border-color: #ef4444 !important; }
-    div.badge-warning .stButton > button {
-        background: #fffbeb !important; color: #78450a !important;
-        border: 1.5px solid #fcd34d !important;
-        border-radius: 999px !important;
-        font-size: 0.78rem !important; font-weight: 700 !important;
-        padding: 0.25rem 0.65rem !important;
-        min-width: 2rem !important; transform: none !important;
-    }
-    div.badge-warning .stButton > button:hover { background: #fef3c7 !important; border-color: #f59e0b !important; }
-    div.badge-selected .stButton > button {
-        outline: 2.5px solid #1a1a2e !important; outline-offset: 1px !important;
-        font-weight: 800 !important;
-    }
-
-    /* SIDEBAR */
     section[data-testid="stSidebar"] { background: #fff; border-right: 1px solid #e4e1db; }
     section[data-testid="stSidebar"] * { color: #64748b !important; }
     section[data-testid="stSidebar"] h3 { color: #1a1a2e !important; font-family: 'Playfair Display', serif !important; }
@@ -414,60 +328,92 @@ st.markdown("""
         background: #fff !important;
     }
     hr { border-color: #e4e1db !important; }
-
-    /* HIDDEN SENTENCE SELECTOR INPUT */
-    div.hidden-sent-input { visibility:hidden !important; height:0 !important; overflow:hidden !important; margin:0 !important; padding:0 !important; }
-    div.hidden-sent-input * { height:0 !important; min-height:0 !important; padding:0 !important; margin:0 !important; border:none !important; }
 </style>
 """, unsafe_allow_html=True)
 
 # --------------------------------------------------
 # CORE FUNCTIONS
 # --------------------------------------------------
-def split_sentences(text):
+def split_sentences(text: str) -> List[str]:
     text = text.replace("\n", " ").strip()
-    if not text: return []
+    if not text:
+        return []
     sentences = re.findall(r'[^.!?]+[.!?]+|[^.!?]+$', text)
     return [s.strip() for s in sentences if s.strip()]
 
-def extract_years(s):
+
+def extract_years(s: str) -> List[int]:
     return [int(y) for y in re.findall(r'\b(19\d{2}|20\d{2})\b', s)]
 
-def contains_any(s, kws):
-    return any(k in s.lower() for k in kws)
 
-def has_number(s):
+def contains_any(s: str, kws: List[str]) -> bool:
+    lower = s.lower()
+    return any(k in lower for k in kws)
+
+
+def has_number(s: str) -> bool:
     return bool(re.search(r'\b\d+(?:\.\d+)?%?\b', s))
 
-def clamp(v, lo, hi): return max(lo, min(v, hi))
 
-TIME_KW = ["currently","recently","today","now","next year","this year","this month",
-           "this week","this summer","this winter","this quarter","will","planned",
-           "expected to","forecast","soon","upcoming"]
-NUM_KW  = ["inflation","price","prices","market share","interest rate","unemployment",
-           "gdp","leader","sales","revenue","ranked","ranking"]
+def clamp(v: int, lo: int, hi: int) -> int:
+    return max(lo, min(v, hi))
 
-def analyze_sentence(sentence):
-    score = 100; reasons = []; lower = sentence.lower()
+
+TIME_KW = [
+    "currently", "recently", "today", "now", "next year", "this year", "this month",
+    "this week", "this summer", "this winter", "this quarter", "will", "planned",
+    "expected to", "forecast", "soon", "upcoming"
+]
+NUM_KW = [
+    "inflation", "price", "prices", "market share", "interest rate", "unemployment",
+    "gdp", "leader", "sales", "revenue", "ranked", "ranking"
+]
+
+
+def analyze_sentence(sentence: str) -> Dict[str, Any]:
+    score = 100
+    reasons = []
+    lower = sentence.lower()
     years = extract_years(sentence)
+
     for year in years:
         age = CURRENT_YEAR - year
-        if age >= 4:   score -= 45; reasons.append(f"References {year} ({age} years ago) — likely outdated.")
-        elif age >= 2: score -= 28; reasons.append(f"References {year} — may need a freshness check.")
-        elif age >= 1: score -= 12; reasons.append(f"Date from {year} adds temporal sensitivity.")
+        if age >= 4:
+            score -= 45
+            reasons.append(f"References {year} ({age} years ago) — likely outdated.")
+        elif age >= 2:
+            score -= 28
+            reasons.append(f"References {year} — may need a freshness check.")
+        elif age >= 1:
+            score -= 12
+            reasons.append(f"Date from {year} adds temporal sensitivity.")
+
     if contains_any(sentence, TIME_KW):
-        score -= 22; reasons.append("Uses time-sensitive language like 'currently' or future-oriented wording.")
+        score -= 22
+        reasons.append("Uses time-sensitive language like 'currently' or future-oriented wording.")
+
     if contains_any(sentence, NUM_KW) and has_number(sentence):
-        score -= 18; reasons.append("Numerical claim on a topic that changes over time.")
+        score -= 18
+        reasons.append("Numerical claim on a topic that changes over time.")
+
     if ("next year" in lower or "will" in lower) and any(y < CURRENT_YEAR for y in years):
-        score -= 18; reasons.append("Future language combined with a past date — strongly suggests it is outdated.")
+        score -= 18
+        reasons.append("Future language combined with a past date — strongly suggests it is outdated.")
+
     score = clamp(score, 5, 100)
     label = "danger" if score < 50 else "warning" if score < 80 else "safe"
     explanation = " ".join(reasons) if reasons else "No strong signs of temporal risk detected."
-    return {"sentence": sentence, "score": score, "label": label, "explanation": explanation, "years": years}
 
-def render_article(results, rewrites, sel_original=None):
-    """Render article with clickable highlighted sentences (via data-sent-idx)."""
+    return {
+        "sentence": sentence,
+        "score": score,
+        "label": label,
+        "explanation": explanation,
+        "years": years,
+    }
+
+
+def render_article(results: List[Dict[str, Any]], rewrites: Dict[str, str], sel_original: Optional[str] = None) -> str:
     parts = []
     for i, item in enumerate(results):
         orig = item["sentence"]
@@ -488,98 +434,399 @@ def render_article(results, rewrites, sel_original=None):
     return "".join(parts)
 
 # --------------------------------------------------
-# OPENAI
+# RESPONSES API HELPERS
 # --------------------------------------------------
-def ai_rewrite(sentence):
-    prompt = f"""You are an editorial assistant helping journalists update outdated news articles.
+def response_output_text(resp: Any) -> str:
+    text = getattr(resp, "output_text", None)
+    if text:
+        return text
 
-The following sentence has been flagged as potentially outdated or time-sensitive:
-"{sentence}"
+    try:
+        data = resp.model_dump()
+        output = data.get("output", [])
+        chunks = []
+        for item in output:
+            if item.get("type") == "message":
+                for content in item.get("content", []):
+                    if content.get("type") == "output_text":
+                        chunks.append(content.get("text", ""))
+        return "\n".join(chunks).strip()
+    except Exception:
+        return ""
 
-Your tasks:
-1. Write an improved, accurate replacement sentence in neutral journalistic language. Remove vague time references and outdated claims.
-2. Suggest ONE specific reputable source article the journalist should check to verify the updated claim.
 
-Respond EXACTLY in this format with no extra text:
-REWRITE: [the new sentence]
-SOURCE_NAME: [publication name, e.g. Reuters, Eurostat, BBC News]
-SOURCE_ARTICLE: [title of a specific article or report to look for, or "N/A"]
-SOURCE_AUTHOR: [author name if known, or "N/A"]
-SOURCE_YEAR: [year of the recommended source, or "N/A"]
-SOURCE_WHAT: [one sentence explaining what to look for there]"""
+def get_response_dump(resp: Any) -> Dict[str, Any]:
+    try:
+        return resp.model_dump()
+    except Exception:
+        try:
+            return dict(resp)
+        except Exception:
+            return {}
 
-    r = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=400, temperature=0.4
+
+def normalize_url(url: str) -> str:
+    if not url:
+        return ""
+    if url.startswith("http://") or url.startswith("https://"):
+        return url
+    return f"https://{url}"
+
+
+def dedupe_sources(sources: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    seen = set()
+    cleaned = []
+    for src in sources:
+        key = (src.get("url", "").strip(), src.get("title", "").strip().lower())
+        if key in seen:
+            continue
+        seen.add(key)
+        cleaned.append(src)
+    return cleaned[:MAX_SOURCE_COUNT]
+
+
+def extract_sources_from_response_dump(resp_dump: Dict[str, Any]) -> List[Dict[str, Any]]:
+    found = []
+
+    def walk(node: Any):
+        if isinstance(node, dict):
+            if node.get("type") == "web_search_call":
+                action = node.get("action", {}) or {}
+                sources = action.get("sources", []) or []
+                results = node.get("results", []) or []
+
+                for src in sources:
+                    found.append({
+                        "publisher": src.get("site_name") or src.get("domain") or src.get("title") or "Source",
+                        "title": src.get("title") or src.get("url") or "Untitled source",
+                        "author": src.get("author") or src.get("byline") or "N/A",
+                        "date": src.get("date") or src.get("published_at") or "",
+                        "url": normalize_url(src.get("url", "")),
+                        "relevance": src.get("snippet") or src.get("description") or "Supporting web source used by the model.",
+                    })
+
+                for res in results:
+                    found.append({
+                        "publisher": res.get("site_name") or res.get("domain") or "Source",
+                        "title": res.get("title") or res.get("url") or "Untitled result",
+                        "author": res.get("author") or res.get("byline") or "N/A",
+                        "date": res.get("date") or res.get("published_at") or "",
+                        "url": normalize_url(res.get("url", "")),
+                        "relevance": res.get("snippet") or res.get("description") or "Relevant web result retrieved during research.",
+                    })
+
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for item in node:
+                walk(item)
+
+    walk(resp_dump)
+    return dedupe_sources([s for s in found if s.get("title") or s.get("url")])
+
+
+def build_research_schema() -> Dict[str, Any]:
+    return {
+        "type": "object",
+        "properties": {
+            "status": {
+                "type": "string",
+                "enum": ["outdated", "still_valid", "uncertain", "needs_manual_review"],
+            },
+            "confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+            },
+            "reason": {"type": "string"},
+            "what_changed": {"type": "string"},
+            "rewrite": {"type": "string"},
+            "sources": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "publisher": {"type": "string"},
+                        "title": {"type": "string"},
+                        "author": {"type": "string"},
+                        "date": {"type": "string"},
+                        "url": {"type": "string"},
+                        "relevance": {"type": "string"},
+                    },
+                    "required": ["publisher", "title", "author", "date", "url", "relevance"],
+                    "additionalProperties": False,
+                },
+            },
+        },
+        "required": ["status", "confidence", "reason", "what_changed", "rewrite", "sources"],
+        "additionalProperties": False,
+    }
+
+
+def coerce_research_result(payload: Dict[str, Any], fallback_sources: List[Dict[str, Any]]) -> Dict[str, Any]:
+    status = payload.get("status", "needs_manual_review")
+    if status not in {"outdated", "still_valid", "uncertain", "needs_manual_review"}:
+        status = "needs_manual_review"
+
+    confidence = payload.get("confidence", 0.0)
+    try:
+        confidence = float(confidence)
+    except Exception:
+        confidence = 0.0
+    confidence = max(0.0, min(1.0, confidence))
+
+    rewrite = (payload.get("rewrite") or "").strip()
+    reason = (payload.get("reason") or "").strip()
+    what_changed = (payload.get("what_changed") or "").strip()
+
+    sources = payload.get("sources") or []
+    normalized_sources = []
+    for src in sources[:MAX_SOURCE_COUNT]:
+        if not isinstance(src, dict):
+            continue
+        normalized_sources.append({
+            "publisher": str(src.get("publisher", "Source")).strip(),
+            "title": str(src.get("title", "Untitled source")).strip(),
+            "author": str(src.get("author", "N/A")).strip(),
+            "date": str(src.get("date", "")).strip(),
+            "url": normalize_url(str(src.get("url", "")).strip()),
+            "relevance": str(src.get("relevance", "Relevant supporting source.")).strip(),
+        })
+
+    merged_sources = dedupe_sources(normalized_sources + fallback_sources)
+
+    if not reason:
+        reason = "The model could not clearly justify this result, so manual review is recommended."
+    if not what_changed:
+        what_changed = "No clear change summary was returned."
+    if not rewrite:
+        rewrite = ""
+
+    if status in {"uncertain", "needs_manual_review"} and confidence > 0.75:
+        confidence = 0.75
+
+    if not merged_sources:
+        status = "needs_manual_review"
+        confidence = min(confidence, 0.5)
+        reason = "No reliable recent sources were found to support an automatic update."
+
+    return {
+        "status": status,
+        "confidence": confidence,
+        "reason": reason,
+        "what_changed": what_changed,
+        "rewrite": rewrite,
+        "sources": merged_sources,
+    }
+
+
+def is_weak_result(result: Dict[str, Any]) -> bool:
+    if not result:
+        return True
+    if result.get("status") in {"uncertain", "needs_manual_review"}:
+        return True
+    if float(result.get("confidence", 0.0)) < RESEARCH_CONFIDENCE_RETRY_THRESHOLD:
+        return True
+    if len(result.get("sources", [])) == 0:
+        return True
+    if len(result.get("rewrite", "").strip()) < 40:
+        return True
+    return False
+
+
+def _run_research_pass(sentence: str, article_context: str, extra_instruction: str = "") -> Dict[str, Any]:
+    prompt = f"""
+You are an editorial research assistant for journalists.
+
+Task:
+Assess whether the selected sentence is outdated, still valid, uncertain, or needs manual review.
+Use web search to gather recent reputable evidence before deciding.
+
+Requirements:
+- {PREFERRED_SOURCE_HINT}
+- Use web search and base the answer on real recent reporting or official sources.
+- Do not invent source details.
+- Prefer specific, current rewrites over vague paraphrases.
+- If the sentence is about a forecast, trend, market movement, inflation, energy prices, or policy outlook, rewrite it using the latest concrete direction or expectation supported by sources.
+- If the sentence refers to an old future event, update it to what actually happened.
+- Treat promotional claims like 'market leader' cautiously unless supported by a clearly attributable ranking or methodology.
+- Remove vague temporal wording like 'currently', 'recently', 'next year', or 'this summer' unless the timing is clearly anchored.
+- Keep rewrite to one sentence in neutral journalistic language.
+- The rewrite must be more informative than the original and should mention the current development, latest estimate, or updated status when available.
+- Include up to {MAX_SOURCE_COUNT} real sources with publisher, title, author, date, url, and relevance.
+- If evidence is weak, conflicting, or vague, return status='needs_manual_review' or 'uncertain'.
+- If the sentence is historical and still acceptable in context, do not rewrite it aggressively.
+- For numerical or forecast claims, prioritize the most recent reliable source.
+- If the first search results are weak or vague, refine the search and try again.
+
+Additional instruction:
+{extra_instruction or 'None'}
+
+Article context:
+{article_context}
+
+Selected sentence:
+{sentence}
+""".strip()
+
+    response = client.responses.create(
+        model=RESEARCH_MODEL,
+        tools=[{"type": "web_search"}],
+        include=["web_search_call.results", "web_search_call.action.sources"],
+        input=prompt,
+        text={
+            "format": {
+                "type": "json_schema",
+                "name": "sentence_refresh",
+                "schema": build_research_schema(),
+            }
+        },
     )
-    text = r.choices[0].message.content.strip()
-    rewrite, source_name, source_article, source_author, source_year, source_what = "", "", "", "", "", ""
-    for line in text.split("\n"):
-        if line.startswith("REWRITE:"): rewrite = line.replace("REWRITE:", "").strip()
-        elif line.startswith("SOURCE_NAME:"): source_name = line.replace("SOURCE_NAME:", "").strip()
-        elif line.startswith("SOURCE_ARTICLE:"): source_article = line.replace("SOURCE_ARTICLE:", "").strip()
-        elif line.startswith("SOURCE_AUTHOR:"): source_author = line.replace("SOURCE_AUTHOR:", "").strip()
-        elif line.startswith("SOURCE_YEAR:"): source_year = line.replace("SOURCE_YEAR:", "").strip()
-        elif line.startswith("SOURCE_WHAT:"): source_what = line.replace("SOURCE_WHAT:", "").strip()
-    return {"rewrite": rewrite, "source_name": source_name, "source_article": source_article,
-            "source_author": source_author, "source_year": source_year, "source_what": source_what}
 
-def ai_chat(messages, article):
-    sys = f"""You are TimeTravel, an AI editorial assistant for a news agency.
-Help journalists verify, update, and fact-check articles.
+    raw_text = response_output_text(response)
+    resp_dump = get_response_dump(response)
+    fallback_sources = extract_sources_from_response_dump(resp_dump)
 
-Article being edited:
----
-{article.strip() if article.strip() else "No article pasted yet."}
----
-Be concise and specific. Name real reputable sources."""
-    msgs = [{"role": "system", "content": sys}] + [{"role": m["role"], "content": m["content"]} for m in messages]
-    r = client.chat.completions.create(model="gpt-4o-mini", messages=msgs, max_tokens=600, temperature=0.5)
-    return r.choices[0].message.content.strip()
+    try:
+        payload = json.loads(raw_text)
+    except Exception:
+        return {
+            "status": "needs_manual_review",
+            "confidence": 0.0,
+            "reason": "The model response could not be parsed into structured research output.",
+            "what_changed": "No reliable automatic change summary was available.",
+            "rewrite": "",
+            "sources": fallback_sources,
+        }
+
+    return coerce_research_result(payload, fallback_sources)
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def research_sentence(sentence: str, article_context: str) -> Dict[str, Any]:
+    first_result = _run_research_pass(sentence, article_context)
+    if is_weak_result(first_result):
+        retry_instruction = (
+            "The first pass was too weak or too vague. Search again more thoroughly. "
+            "Focus on the latest reliable reporting, concrete 2025/2026 developments when relevant, "
+            "official data, and a more specific updated sentence."
+        )
+        second_result = _run_research_pass(sentence, article_context, retry_instruction)
+        if not is_weak_result(second_result) or float(second_result.get("confidence", 0.0)) >= float(first_result.get("confidence", 0.0)):
+            return second_result
+    return first_result
+
+
+@st.cache_data(show_spinner=False, ttl=900)
+def ask_editorial_chat(question: str, article: str) -> str:
+    prompt = f"""
+You are TimeTravel, an editorial AI assistant.
+
+Answer the user's question about the article below.
+If the question asks for up-to-date information, you may use web search.
+Be concise, specific, and editor-friendly.
+Use reputable sources and mention when something needs manual review.
+
+Article:
+{article.strip() if article.strip() else 'No article pasted yet.'}
+
+User question:
+{question}
+""".strip()
+
+    response = client.responses.create(
+        model=CHAT_MODEL,
+        tools=[{"type": "web_search"}],
+        input=prompt,
+    )
+    return response_output_text(response) or "I couldn't generate a useful answer."
 
 # --------------------------------------------------
 # DEMO
 # --------------------------------------------------
-DEMO = ("In 2021, the company announced that it would launch its electric delivery fleet next year. "
-        "The CEO currently says the business is the market leader in battery logistics. "
-        "Inflation is 2.1% and energy prices are expected to fall this summer. "
-        "The company opened three hubs in Germany in 2023. "
-        "Analysts recently described the expansion strategy as highly effective. "
-        "The government will introduce a subsidy program in 2024 to support infrastructure upgrades.")
+DEMO = (
+    "In 2021, the company announced that it would launch its electric delivery fleet next year. "
+    "The CEO currently says the business is the market leader in battery logistics. "
+    "Inflation is 2.1% and energy prices are expected to fall this summer. "
+    "The company opened three hubs in Germany in 2023. "
+    "Analysts recently described the expansion strategy as highly effective. "
+    "The government will introduce a subsidy program in 2024 to support infrastructure upgrades."
+)
 
 # --------------------------------------------------
 # SESSION STATE
 # --------------------------------------------------
-for k, v in [
-    ("article_text", DEMO), ("chat_history", []),
-    ("changes_log", []), ("results", []), ("analyzed", False),
-    ("selected_sentence", None), ("rewrites", {}), ("ai_result", None),
-]:
-    if k not in st.session_state: st.session_state[k] = v
+DEFAULT_STATE = {
+    "article_text": DEMO,
+    "chat_history": [],
+    "changes_log": [],
+    "results": [],
+    "analyzed": False,
+    "selected_sentence": None,
+    "rewrites": {},
+    "research_result": None,
+    "research_error": None,
+}
+
+for key, value in DEFAULT_STATE.items():
+    if key not in st.session_state:
+        st.session_state[key] = value
 
 # --------------------------------------------------
 # SIDEBAR
 # --------------------------------------------------
 with st.sidebar:
     st.markdown("### 🕰️ TimeTravel")
-    st.markdown("<div style='font-size:0.82rem;color:#94a3b8;margin-bottom:1.2rem;'>Editorial AI for temporal credibility.</div>", unsafe_allow_html=True)
+    st.markdown(
+        "<div style='font-size:0.82rem;color:#94a3b8;margin-bottom:1.2rem;'>"
+        "Editorial AI for temporal credibility.</div>",
+        unsafe_allow_html=True,
+    )
+
     if st.button("Load demo article", use_container_width=True):
-        st.session_state.update({"article_text": DEMO, "results": [], "analyzed": False,
-                                  "rewrites": {}, "selected_sentence": None, "ai_result": None})
+        st.session_state.update({
+            "article_text": DEMO,
+            "results": [],
+            "analyzed": False,
+            "rewrites": {},
+            "selected_sentence": None,
+            "research_result": None,
+            "research_error": None,
+        })
+
     if st.button("Clear article", use_container_width=True):
-        st.session_state.update({"article_text": "", "results": [], "analyzed": False,
-                                  "rewrites": {}, "selected_sentence": None, "ai_result": None})
+        st.session_state.update({
+            "article_text": "",
+            "results": [],
+            "analyzed": False,
+            "rewrites": {},
+            "selected_sentence": None,
+            "research_result": None,
+            "research_error": None,
+        })
+
     if st.button("Clear chat", use_container_width=True):
         st.session_state.chat_history = []
+
     if st.button("Clear changes", use_container_width=True):
         st.session_state.changes_log = []
         st.session_state.rewrites = {}
+
     st.markdown("---")
     st.markdown("### How it works")
-    st.markdown("1. Paste article & **Analyze**\n2. **Click** a flagged sentence\n3. Click **Rewrite** — AI replaces it\n4. Repeat for each sentence\n5. See all changes in **Changes Log**")
+    st.markdown(
+        "1. Paste article & **Analyze**\n"
+        "2. **Click** a flagged sentence\n"
+        "3. Click **Research latest evidence**\n"
+        "4. Review status, confidence, and sources\n"
+        "5. Accept only strong rewrites"
+    )
     st.markdown("---")
-    st.markdown("**🟡 Yellow** — review recommended  \n**🔴 Red** — likely outdated  \n**🟢 Green** — rewritten by AI")
+    st.markdown(
+        "**🟡 Yellow** — review recommended  \n"
+        "**🔴 Red** — likely outdated  \n"
+        "**🟢 Green** — rewritten by AI"
+    )
 
 # --------------------------------------------------
 # TOPBAR
@@ -594,9 +841,64 @@ st.markdown("""
 st.markdown("""
 <div class="page-header">
     <div class="page-title">Temporal Trust Checker</div>
-    <div class="page-sub">Detect outdated claims, select flagged sentences, and get AI-powered rewrites with verified sources.</div>
+    <div class="page-sub">Detect outdated claims, research the latest evidence on the web, and replace risky wording with source-backed updates.</div>
 </div>
 """, unsafe_allow_html=True)
+
+# --------------------------------------------------
+# UTILS FOR UI
+# --------------------------------------------------
+def status_badge(status: str) -> str:
+    mapping = {
+        "outdated": "<div class='badge b-danger'>🔴 Outdated</div>",
+        "still_valid": "<div class='badge b-done'>🟢 Still valid</div>",
+        "uncertain": "<div class='badge b-warning'>🟡 Uncertain</div>",
+        "needs_manual_review": "<div class='badge b-review'>🟣 Manual review</div>",
+    }
+    return mapping.get(status, "<div class='badge b-review'>🟣 Review</div>")
+
+
+def confidence_color(conf: float) -> str:
+    if conf >= 0.8:
+        return "#16a34a"
+    if conf >= 0.6:
+        return "#f59e0b"
+    return "#ef4444"
+
+
+def can_accept_result(result: Dict[str, Any]) -> bool:
+    return (
+        result.get("status") in {"outdated", "still_valid"}
+        and bool(result.get("rewrite", "").strip())
+        and float(result.get("confidence", 0)) >= MIN_ACCEPT_CONFIDENCE
+        and len(result.get("sources", [])) > 0
+    )
+
+
+def source_cards_html(sources: List[Dict[str, Any]]) -> str:
+    cards = []
+    for src in sources[:MAX_SOURCE_COUNT]:
+        publisher = escape(src.get("publisher", "Source"))
+        title = escape(src.get("title", "Untitled source"))
+        author = escape(src.get("author", "N/A"))
+        date = escape(src.get("date", ""))
+        url = escape(src.get("url", ""))
+        relevance = escape(src.get("relevance", ""))
+        link_html = f"<a href='{url}' target='_blank'>Open article</a>" if url else ""
+
+        cards.append(
+            f"""
+            <div class='source-card'>
+                <div class='source-name'>📰 {publisher}</div>
+                <div class='source-desc'><strong>Title:</strong> {title}</div>
+                <div class='source-desc'><strong>Author:</strong> {author}</div>
+                <div class='source-desc'><strong>Date:</strong> {date}</div>
+                <div class='source-desc' style='margin-top:0.3rem;'>{relevance}</div>
+                <div class='source-desc' style='margin-top:0.35rem;'>{link_html}</div>
+            </div>
+            """
+        )
+    return "".join(cards)
 
 # --------------------------------------------------
 # TABS
@@ -607,14 +909,17 @@ tab1, tab2 = st.tabs(["📋  Analyze & Rewrite", "📝  Changes Log"])
 # TAB 1
 # ==================================================
 with tab1:
-
-    # INPUT
     inc, btnc = st.columns([5.5, 1], gap="small")
     with inc:
-        article_text = st.text_area("Article", value=st.session_state.article_text,
-                                    height=110, label_visibility="collapsed",
-                                    placeholder="Paste your article here...")
+        article_text = st.text_area(
+            "Article",
+            value=st.session_state.article_text,
+            height=110,
+            label_visibility="collapsed",
+            placeholder="Paste your article here...",
+        )
         st.session_state.article_text = article_text
+
     with btnc:
         st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
         if st.button("🔍 Analyze", use_container_width=True):
@@ -623,52 +928,62 @@ with tab1:
                 st.session_state.results = [analyze_sentence(s) for s in sents]
                 st.session_state.analyzed = True
                 st.session_state.selected_sentence = None
-                st.session_state.ai_result = None
+                st.session_state.research_result = None
+                st.session_state.research_error = None
                 st.session_state.rewrites = {}
 
     results = st.session_state.results
-    risky = [r for r in results if r["label"] != "safe" and r["sentence"] not in st.session_state.rewrites]
+    risky = [
+        r for r in results
+        if r["label"] != "safe" and r["sentence"] not in st.session_state.rewrites
+    ]
 
     if st.session_state.analyzed and results:
         freshness = round(sum(r["score"] for r in results) / len(results))
         rewrites_done = len(st.session_state.rewrites)
 
-        # METRICS
         mc1, mc2, mc3, mc4 = st.columns(4)
         with mc1:
-            st.markdown(f"""<div class="mcard-accent">
-                <div class="mval mval-gold">{freshness}</div>
-                <div class="mlbl mlbl-light">Freshness Score</div>
-                <div class="prog">
-                    <div class="prog-bar" style="width:{freshness}%;"></div>
-                </div>
-            </div>""", unsafe_allow_html=True)
+            st.markdown(
+                f"""<div class="mcard-accent">
+                    <div class="mval mval-gold">{freshness}</div>
+                    <div class="mlbl mlbl-light">Freshness Score</div>
+                    <div class="prog"><div class="prog-bar" style="width:{freshness}%;"></div></div>
+                </div>""",
+                unsafe_allow_html=True,
+            )
         with mc2:
-            st.markdown(f"""<div class="mcard">
-                <div class="mval mval-red">{len(risky)}</div>
-                <div class="mlbl">Still Flagged</div>
-            </div>""", unsafe_allow_html=True)
+            st.markdown(
+                f"""<div class="mcard">
+                    <div class="mval mval-red">{len(risky)}</div>
+                    <div class="mlbl">Still Flagged</div>
+                </div>""",
+                unsafe_allow_html=True,
+            )
         with mc3:
-            st.markdown(f"""<div class="mcard">
-                <div class="mval">{len(results)}</div>
-                <div class="mlbl">Total Sentences</div>
-            </div>""", unsafe_allow_html=True)
+            st.markdown(
+                f"""<div class="mcard">
+                    <div class="mval">{len(results)}</div>
+                    <div class="mlbl">Total Sentences</div>
+                </div>""",
+                unsafe_allow_html=True,
+            )
         with mc4:
-            st.markdown(f"""<div class="mcard">
-                <div class="mval mval-green">{rewrites_done}</div>
-                <div class="mlbl">Rewritten</div>
-            </div>""", unsafe_allow_html=True)
+            st.markdown(
+                f"""<div class="mcard">
+                    <div class="mval mval-green">{rewrites_done}</div>
+                    <div class="mlbl">Accepted</div>
+                </div>""",
+                unsafe_allow_html=True,
+            )
 
         st.markdown("<div style='height:0.2rem'></div>", unsafe_allow_html=True)
-
-        # MAIN LAYOUT — article left, chat right
         art_col, chat_col = st.columns([1.6, 1.0], gap="large")
 
         with art_col:
-            # Hidden buttons — JS clicks these to trigger Streamlit reruns reliably
             st.markdown('<div style="position:fixed;top:-9999px;left:-9999px;opacity:0;pointer-events:none;">', unsafe_allow_html=True)
             btn_clicks = [st.button(f"§{i}§", key=f"hbtn_{i}") for i in range(len(results))]
-            st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
 
             for i, clicked in enumerate(btn_clicks):
                 if clicked and results[i]["label"] != "safe" and results[i]["sentence"] not in st.session_state.rewrites:
@@ -676,52 +991,60 @@ with tab1:
                         st.session_state.selected_sentence = results[i]["sentence"]
                     else:
                         st.session_state.selected_sentence = None
-                    st.session_state.ai_result = None
+                    st.session_state.research_result = None
+                    st.session_state.research_error = None
                     st.rerun()
 
-            # ARTICLE
             st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.markdown('<div class="slabel"><span class="slabel-dot"></span>Analysed Article — click a highlighted sentence</div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="slabel"><span class="slabel-dot"></span>Analysed Article — click a highlighted sentence</div>',
+                unsafe_allow_html=True,
+            )
 
             article_html = render_article(results, st.session_state.rewrites, st.session_state.selected_sentence)
             component_html = f"""<!DOCTYPE html><html><head><style>
-  body{{margin:0;padding:1rem 1.2rem;font-family:'Inter',system-ui,sans-serif;
-       font-size:0.97rem;line-height:2.2;color:#1a1a2e;background:transparent;}}
-  .s-safe{{display:inline;color:#1a1a2e;}}
-  .s-rewritten{{display:inline;background:#f0fdf4;color:#14532d;border:1.5px solid #86efac;border-radius:6px;padding:2px 8px;margin:1px;font-weight:500;}}
-  .s-warning{{display:inline;background:#fffbeb;color:#78450a;border:1.5px solid #fcd34d;border-radius:6px;padding:2px 8px;margin:1px;cursor:pointer;transition:all 0.15s;}}
-  .s-warning:hover{{background:#fef3c7;border-color:#f59e0b;box-shadow:0 2px 8px rgba(245,158,11,0.3);}}
-  .s-danger{{display:inline;background:#fff1f1;color:#7f1d1d;border:1.5px solid #fca5a5;border-radius:6px;padding:2px 8px;margin:1px;cursor:pointer;transition:all 0.15s;}}
-  .s-danger:hover{{background:#fee2e2;border-color:#ef4444;box-shadow:0 2px 8px rgba(239,68,68,0.3);}}
-  .s-selected{{outline:2.5px solid #1a1a2e!important;outline-offset:2px;box-shadow:0 2px 12px rgba(26,26,46,0.22)!important;}}
-</style></head><body>{article_html}<script>
-  document.querySelectorAll('[data-sent-idx]').forEach(function(el){{
-    el.addEventListener('click',function(){{
-      var idx=this.getAttribute('data-sent-idx');
-      try{{
-        var btns=window.parent.document.querySelectorAll('button');
-        for(var b=0;b<btns.length;b++){{
-          if(btns[b].innerText.trim()==='§'+idx+'§'){{
-            btns[b].click();
-            return;
-          }}
-        }}
-      }}catch(e){{}}
-    }});
-  }});
-</script></body></html>"""
+                body{{margin:0;padding:1rem 1.2rem;font-family:'Inter',system-ui,sans-serif;font-size:0.97rem;line-height:2.2;color:#1a1a2e;background:transparent;}}
+                .s-safe{{display:inline;color:#1a1a2e;}}
+                .s-rewritten{{display:inline;background:#f0fdf4;color:#14532d;border:1.5px solid #86efac;border-radius:6px;padding:2px 8px;margin:1px;font-weight:500;}}
+                .s-warning{{display:inline;background:#fffbeb;color:#78450a;border:1.5px solid #fcd34d;border-radius:6px;padding:2px 8px;margin:1px;cursor:pointer;transition:all 0.15s;}}
+                .s-warning:hover{{background:#fef3c7;border-color:#f59e0b;box-shadow:0 2px 8px rgba(245,158,11,0.3);}}
+                .s-danger{{display:inline;background:#fff1f1;color:#7f1d1d;border:1.5px solid #fca5a5;border-radius:6px;padding:2px 8px;margin:1px;cursor:pointer;transition:all 0.15s;}}
+                .s-danger:hover{{background:#fee2e2;border-color:#ef4444;box-shadow:0 2px 8px rgba(239,68,68,0.3);}}
+                .s-selected{{outline:2.5px solid #1a1a2e!important;outline-offset:2px;box-shadow:0 2px 12px rgba(26,26,46,0.22)!important;}}
+            </style></head><body>{article_html}<script>
+                document.querySelectorAll('[data-sent-idx]').forEach(function(el){{
+                    el.addEventListener('click', function(){{
+                        var idx = this.getAttribute('data-sent-idx');
+                        try {{
+                            var btns = window.parent.document.querySelectorAll('button');
+                            for (var b = 0; b < btns.length; b++) {{
+                                if (btns[b].innerText.trim() === '§' + idx + '§') {{
+                                    btns[b].click();
+                                    return;
+                                }}
+                            }}
+                        }} catch(e) {{}}
+                    }});
+                }});
+            </script></body></html>"""
             components.html(component_html, height=260, scrolling=True)
 
-            st.markdown("""<div class="legend">
-                <div class="lpill">🟡 Yellow — review recommended</div>
-                <div class="lpill">🔴 Red — likely outdated</div>
-                <div class="lpill">🟢 Green — rewritten</div>
-            </div>""", unsafe_allow_html=True)
-            if not risky:
-                st.markdown("<div style='margin-top:0.8rem;font-size:0.88rem;color:#22c55e;font-weight:600;'>✅ All flagged sentences have been rewritten!</div>", unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown(
+                """<div class="legend">
+                    <div class="lpill">🟡 Yellow — review recommended</div>
+                    <div class="lpill">🔴 Red — likely outdated</div>
+                    <div class="lpill">🟢 Green — accepted rewrite</div>
+                </div>""",
+                unsafe_allow_html=True,
+            )
 
-            # INSPECTOR — pops up below article when sentence is selected
+            if not risky:
+                st.markdown(
+                    "<div style='margin-top:0.8rem;font-size:0.88rem;color:#22c55e;font-weight:600;'>✅ All flagged sentences have been handled.</div>",
+                    unsafe_allow_html=True,
+                )
+            st.markdown("</div>", unsafe_allow_html=True)
+
             sel_sentence = st.session_state.selected_sentence
             sel_item = next((r for r in results if r["sentence"] == sel_sentence), None)
 
@@ -737,61 +1060,98 @@ with tab1:
                 with hc1:
                     st.markdown(f'<div class="badge {badge_cls}">{badge_txt}</div>', unsafe_allow_html=True)
                 with hc2:
-                    st.markdown(f"<div style='text-align:right;font-family:Playfair Display,serif;font-size:1.9rem;font-weight:700;color:{sc_color};'>{sel_item['score']}</div>", unsafe_allow_html=True)
+                    st.markdown(
+                        f"<div style='text-align:right;font-family:Playfair Display,serif;font-size:1.9rem;font-weight:700;color:{sc_color};'>{sel_item['score']}</div>",
+                        unsafe_allow_html=True,
+                    )
 
                 st.markdown(f"<div class='inspector-sentence {q_cls}'>{escape(sel_item['sentence'])}</div>", unsafe_allow_html=True)
-                st.markdown(f"<div style='font-size:0.84rem;color:#64748b;line-height:1.6;margin-bottom:1rem;'>{sel_item['explanation']}</div>", unsafe_allow_html=True)
+                st.markdown(
+                    f"<div style='font-size:0.84rem;color:#64748b;line-height:1.6;margin-bottom:1rem;'>{escape(sel_item['explanation'])}</div>",
+                    unsafe_allow_html=True,
+                )
 
-                if st.button("✨  Rewrite this sentence", use_container_width=True, key="rewrite_btn"):
-                    with st.spinner("AI is rewriting..."):
-                        st.session_state.ai_result = ai_rewrite(sel_item["sentence"])
+                if st.button("🌐  Research latest evidence", use_container_width=True, key="research_btn"):
+                    try:
+                        with st.spinner("Searching the web and comparing sources..."):
+                            st.session_state.research_result = research_sentence(
+                                sel_item["sentence"],
+                                st.session_state.article_text,
+                            )
+                            st.session_state.research_error = None
+                    except Exception as e:
+                        st.session_state.research_result = None
+                        st.session_state.research_error = str(e)
 
-                if st.session_state.ai_result:
-                    res = st.session_state.ai_result
-                    st.markdown('<div class="badge b-ai">✨ AI Suggestion</div>', unsafe_allow_html=True)
-                    if res.get("rewrite"):
-                        st.markdown('<div class="slabel">New sentence</div>', unsafe_allow_html=True)
-                        st.markdown(f"<div class='ai-new-sentence'>{escape(res['rewrite'])}</div>", unsafe_allow_html=True)
-                    if res.get("source_name"):
-                        st.markdown('<div class="slabel">Suggested source to verify</div>', unsafe_allow_html=True)
-                        src_name    = res.get("source_name", "")
-                        src_article = res.get("source_article", "").strip().strip('"').strip("'")
-                        src_author  = res.get("source_author", "").strip()
-                        src_year    = res.get("source_year", "").strip()
-                        src_what    = res.get("source_what", "").strip()
-                        rows = ""
-                        if src_article and src_article not in ("N/A", ""):
-                            rows += f"<tr><td style='color:#64748b;width:80px;padding:3px 0;font-size:0.78rem;'>Article</td><td style='font-style:italic;font-size:0.85rem;padding:3px 0;'>&ldquo;{escape(src_article)}&rdquo;</td></tr>"
-                        if src_author and src_author not in ("N/A", ""):
-                            rows += f"<tr><td style='color:#64748b;font-size:0.78rem;padding:3px 0;'>Author</td><td style='font-size:0.85rem;font-weight:600;padding:3px 0;'>{escape(src_author)}</td></tr>"
-                        if src_year and src_year not in ("N/A", ""):
-                            rows += f"<tr><td style='color:#64748b;font-size:0.78rem;padding:3px 0;'>Year</td><td style='font-size:0.85rem;padding:3px 0;'>{escape(src_year)}</td></tr>"
-                        st.markdown(f"""<div class="source-card">
-                            <div style='font-weight:700;font-size:0.95rem;color:#1d4ed8;margin-bottom:0.5rem;'>📰 {escape(src_name)}</div>
-                            <table style='border-collapse:collapse;width:100%;'>{rows}</table>
-                            <div style='font-size:0.82rem;color:#475569;margin-top:0.5rem;border-top:1px solid #e0eaff;padding-top:0.4rem;'>{escape(src_what)}</div>
-                        </div>""", unsafe_allow_html=True)
-                    st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
-                    if st.button("✅  Accept & replace sentence", use_container_width=True, key="accept_btn"):
-                        orig = sel_item["sentence"]
-                        new = res["rewrite"]
-                        st.session_state.rewrites[orig] = new
-                        st.session_state.changes_log.append({
-                            "original": orig, "rewrite": new,
-                            "source_name": res.get("source_name",""),
-                            "source_article": res.get("source_article",""),
-                            "source_author": res.get("source_author",""),
-                            "source_year": res.get("source_year",""),
-                            "source_what": res.get("source_what",""),
-                            "label": sel_item["label"], "score": sel_item["score"]
-                        })
-                        st.session_state.selected_sentence = None
-                        st.session_state.ai_result = None
-                        st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
+                if st.session_state.research_error:
+                    st.error(f"Research failed: {st.session_state.research_error}")
+
+                result = st.session_state.research_result
+                if result:
+                    conf = float(result.get("confidence", 0.0))
+                    st.markdown(status_badge(result.get("status", "needs_manual_review")), unsafe_allow_html=True)
+                    st.markdown(
+                        f"<div style='font-size:0.84rem;color:#64748b;line-height:1.6;margin-bottom:0.8rem;'><strong>Reason:</strong> {escape(result.get('reason', ''))}</div>",
+                        unsafe_allow_html=True,
+                    )
+                    st.markdown(
+                        f"<div style='font-size:0.84rem;color:#64748b;line-height:1.6;margin-bottom:0.8rem;'><strong>What changed:</strong> {escape(result.get('what_changed', ''))}</div>",
+                        unsafe_allow_html=True,
+                    )
+                    st.markdown(
+                        f"<div style='margin-bottom:0.8rem;font-size:0.85rem;color:{confidence_color(conf)};font-weight:700;'>Confidence: {round(conf * 100)}%</div>",
+                        unsafe_allow_html=True,
+                    )
+
+                    if result.get("rewrite"):
+                        st.markdown('<div class="slabel">Suggested updated sentence</div>', unsafe_allow_html=True)
+                        st.markdown(f"<div class='ai-new-sentence'>{escape(result['rewrite'])}</div>", unsafe_allow_html=True)
+
+                    st.markdown('<div class="slabel">Supporting sources</div>', unsafe_allow_html=True)
+                    st.markdown(source_cards_html(result.get("sources", [])), unsafe_allow_html=True)
+
+                    allow_accept = can_accept_result(result)
+                    if not allow_accept:
+                        st.info(
+                            "This result is not strong enough for automatic replacement yet. "
+                            "You can keep it for editor review or research again with more context."
+                        )
+
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        if st.button(
+                            "✅  Accept & replace sentence",
+                            use_container_width=True,
+                            key="accept_btn",
+                            disabled=not allow_accept,
+                        ):
+                            orig = sel_item["sentence"]
+                            new = result["rewrite"].strip() or orig
+                            st.session_state.rewrites[orig] = new
+                            st.session_state.changes_log.append({
+                                "original": orig,
+                                "rewrite": new,
+                                "status": result.get("status", "needs_manual_review"),
+                                "confidence": float(result.get("confidence", 0.0)),
+                                "reason": result.get("reason", ""),
+                                "what_changed": result.get("what_changed", ""),
+                                "sources": result.get("sources", []),
+                                "label": sel_item["label"],
+                                "score": sel_item["score"],
+                            })
+                            st.session_state.selected_sentence = None
+                            st.session_state.research_result = None
+                            st.session_state.research_error = None
+                            st.rerun()
+                    with c2:
+                        if st.button("↩️  Clear research result", use_container_width=True, key="clear_research_btn"):
+                            st.session_state.research_result = None
+                            st.session_state.research_error = None
+                            st.rerun()
+
+                st.markdown("</div>", unsafe_allow_html=True)
 
         with chat_col:
-            # CHAT
             st.markdown('<div class="card">', unsafe_allow_html=True)
             st.markdown('<div class="slabel"><span class="slabel-dot"></span>AI Assistant</div>', unsafe_allow_html=True)
             if st.session_state.chat_history:
@@ -800,11 +1160,12 @@ with tab1:
                     if msg["role"] == "user":
                         chat_html += f'<div><div class="cn cn-r">You</div><div class="cb-user">{escape(msg["content"])}</div></div>'
                     else:
-                        chat_html += f'<div><div class="cn cn-ai">TimeTravel AI</div><div class="cb-ai">{msg["content"].replace(chr(10),"<br>")}</div></div>'
+                        chat_html += f'<div><div class="cn cn-ai">TimeTravel AI</div><div class="cb-ai">{escape(msg["content"]).replace(chr(10), "<br>")}</div></div>'
                 chat_html += '</div>'
                 st.markdown(chat_html, unsafe_allow_html=True)
             else:
                 st.markdown('<div style="text-align:center;padding:1rem 0 0.5rem;font-size:0.84rem;color:#94a3b8;">Ask anything about your article</div>', unsafe_allow_html=True)
+
             st.markdown("<div class='chat-input-row'>", unsafe_allow_html=True)
             ci, cb = st.columns([5, 1], gap="small")
             with ci:
@@ -812,91 +1173,121 @@ with tab1:
             with cb:
                 send = st.button("Send", use_container_width=True, key="send_btn")
             st.markdown("</div>", unsafe_allow_html=True)
+
             if send and user_msg.strip():
                 st.session_state.chat_history.append({"role": "user", "content": user_msg.strip()})
-                with st.spinner(""):
-                    reply = ai_chat(st.session_state.chat_history, st.session_state.article_text)
+                try:
+                    with st.spinner(""):
+                        reply = ask_editorial_chat(user_msg.strip(), st.session_state.article_text)
+                except Exception as e:
+                    reply = f"I couldn't complete that research request: {e}"
                 st.session_state.chat_history.append({"role": "assistant", "content": reply})
                 st.rerun()
+
             st.markdown("<div class='chip-row'>", unsafe_allow_html=True)
             q1, q2 = st.columns(2)
             with q1:
                 st.markdown("<div class='chip'>", unsafe_allow_html=True)
                 if st.button("What's outdated?", use_container_width=True, key="qp1"):
-                    st.session_state.chat_history.append({"role": "user", "content": "Which sentences in this article might be outdated?"})
-                    with st.spinner(""):
-                        reply = ai_chat(st.session_state.chat_history, st.session_state.article_text)
+                    question = "Which sentences in this article might be outdated, and why?"
+                    st.session_state.chat_history.append({"role": "user", "content": question})
+                    try:
+                        with st.spinner(""):
+                            reply = ask_editorial_chat(question, st.session_state.article_text)
+                    except Exception as e:
+                        reply = f"I couldn't complete that request: {e}"
                     st.session_state.chat_history.append({"role": "assistant", "content": reply})
                     st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
             with q2:
                 st.markdown("<div class='chip'>", unsafe_allow_html=True)
                 if st.button("Suggest sources", use_container_width=True, key="qp2"):
-                    st.session_state.chat_history.append({"role": "user", "content": "Suggest reputable sources to verify the key claims in this article."})
-                    with st.spinner(""):
-                        reply = ai_chat(st.session_state.chat_history, st.session_state.article_text)
+                    question = "Suggest reputable sources to verify the key claims in this article."
+                    st.session_state.chat_history.append({"role": "user", "content": question})
+                    try:
+                        with st.spinner(""):
+                            reply = ask_editorial_chat(question, st.session_state.article_text)
+                    except Exception as e:
+                        reply = f"I couldn't complete that request: {e}"
                     st.session_state.chat_history.append({"role": "assistant", "content": reply})
                     st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
 
     else:
-        st.markdown("""
-        <div style='text-align:center;padding:4rem 1rem;color:#94a3b8;'>
-            <div style='font-size:2.5rem;margin-bottom:0.6rem;'>🕰️</div>
-            <div style='font-size:1rem;font-weight:600;color:#64748b;margin-bottom:0.3rem;'>Paste an article and click Analyze</div>
-            <div style='font-size:0.87rem;'>Flagged sentences will be highlighted in yellow and red.<br>Select one, get an AI rewrite, and accept it to replace the original.</div>
-        </div>""", unsafe_allow_html=True)
+        st.markdown(
+            """
+            <div style='text-align:center;padding:4rem 1rem;color:#94a3b8;'>
+                <div style='font-size:2.5rem;margin-bottom:0.6rem;'>🕰️</div>
+                <div style='font-size:1rem;font-weight:600;color:#64748b;margin-bottom:0.3rem;'>Paste an article and click Analyze</div>
+                <div style='font-size:0.87rem;'>Flagged sentences will be highlighted in yellow and red.<br>Select one, research the latest evidence, and accept a source-backed rewrite.</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
 # ==================================================
 # TAB 2 — CHANGES LOG
 # ==================================================
 with tab2:
     st.markdown('<div class="page-title" style="font-size:1.7rem;margin-bottom:0.3rem;">Changes Log</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="page-sub" style="margin-bottom:1.5rem;">{len(st.session_state.changes_log)} sentence(s) rewritten this session.</div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="page-sub" style="margin-bottom:1.5rem;">{len(st.session_state.changes_log)} sentence(s) accepted this session.</div>',
+        unsafe_allow_html=True,
+    )
 
     if st.session_state.changes_log:
         for i, c in enumerate(st.session_state.changes_log):
             icon = "🔴" if c["label"] == "danger" else "🟡"
             sc_color = "#ef4444" if c["score"] < 50 else "#f59e0b"
-            st.markdown(f"""
-            <div class="clog-card">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.9rem;">
-                    <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:600;color:#1a1a2e;">Sentence {i+1} {icon}</div>
-                    <div style="font-size:0.73rem;font-weight:700;color:{sc_color};background:#fafaf7;border:1px solid #e4e1db;border-radius:999px;padding:0.2rem 0.65rem;">Original score: {c['score']}</div>
-                </div>
-                <div class="diff-lbl" style="color:#ef4444;">Original</div>
-                <div class="diff-b">{escape(c['original'])}</div>
-                <div class="diff-lbl" style="color:#16a34a;margin-top:0.5rem;">Rewritten</div>
-                <div class="diff-a">{escape(c['rewrite'])}</div>
-            """, unsafe_allow_html=True)
-            if c.get("source_name"):
-                src_art = c.get("source_article", "").strip().strip('"').strip("'")
-                src_aut = c.get("source_author", "").strip()
-                src_yr  = c.get("source_year", "").strip()
-                rows = ""
-                if src_art and src_art != "N/A":
-                    rows += f"<tr><td style='color:#64748b;width:80px;font-size:0.78rem;padding:3px 0;'>Article</td><td style='font-style:italic;font-size:0.85rem;padding:3px 0;'>&ldquo;{escape(src_art)}&rdquo;</td></tr>"
-                if src_aut and src_aut != "N/A":
-                    rows += f"<tr><td style='color:#64748b;font-size:0.78rem;padding:3px 0;'>Author</td><td style='font-size:0.85rem;font-weight:600;padding:3px 0;'>{escape(src_aut)}</td></tr>"
-                if src_yr and src_yr != "N/A":
-                    rows += f"<tr><td style='color:#64748b;font-size:0.78rem;padding:3px 0;'>Year</td><td style='font-size:0.85rem;padding:3px 0;'>{escape(src_yr)}</td></tr>"
-                st.markdown(f"""
-                <div style="margin-top:0.8rem;">
-                    <div class="diff-lbl" style="color:#1d4ed8;">Suggested source</div>
-                    <div style="background:#f8fbff;border:1px solid #bfdbfe;border-radius:12px;padding:0.8rem 1rem;margin-top:0.3rem;">
-                        <div style="font-weight:700;font-size:0.95rem;color:#1d4ed8;margin-bottom:0.4rem;">📰 {escape(c['source_name'])}</div>
-                        <table style='border-collapse:collapse;width:100%;'>{rows}</table>
-                        <div style="font-size:0.82rem;color:#475569;margin-top:0.4rem;border-top:1px solid #e0eaff;padding-top:0.4rem;">{escape(c.get('source_what',''))}</div>
+            conf = float(c.get("confidence", 0.0))
+            status = c.get("status", "needs_manual_review")
+
+            st.markdown(
+                f"""
+                <div class="clog-card">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.9rem;gap:1rem;flex-wrap:wrap;">
+                        <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:600;color:#1a1a2e;">Sentence {i+1} {icon}</div>
+                        <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+                            <div style="font-size:0.73rem;font-weight:700;color:{sc_color};background:#fafaf7;border:1px solid #e4e1db;border-radius:999px;padding:0.2rem 0.65rem;">Original score: {c['score']}</div>
+                            <div style="font-size:0.73rem;font-weight:700;color:{confidence_color(conf)};background:#fafaf7;border:1px solid #e4e1db;border-radius:999px;padding:0.2rem 0.65rem;">Confidence: {round(conf*100)}%</div>
+                            <div style="font-size:0.73rem;font-weight:700;color:#334155;background:#fafaf7;border:1px solid #e4e1db;border-radius:999px;padding:0.2rem 0.65rem;">Status: {escape(status.replace('_', ' '))}</div>
+                        </div>
                     </div>
-                </div>
-                """, unsafe_allow_html=True)
+                    <div class="diff-lbl" style="color:#ef4444;">Original</div>
+                    <div class="diff-b">{escape(c['original'])}</div>
+                    <div class="diff-lbl" style="color:#16a34a;margin-top:0.5rem;">Rewritten</div>
+                    <div class="diff-a">{escape(c['rewrite'])}</div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            if c.get("reason"):
+                st.markdown(
+                    f"<div style='font-size:0.84rem;color:#475569;line-height:1.65;margin:0.8rem 0 0.2rem;'><strong>Reason:</strong> {escape(c['reason'])}</div>",
+                    unsafe_allow_html=True,
+                )
+            if c.get("what_changed"):
+                st.markdown(
+                    f"<div style='font-size:0.84rem;color:#475569;line-height:1.65;margin:0.3rem 0 0.7rem;'><strong>What changed:</strong> {escape(c['what_changed'])}</div>",
+                    unsafe_allow_html=True,
+                )
+
+            sources = c.get("sources", [])
+            if sources:
+                st.markdown('<div class="diff-lbl" style="color:#1d4ed8;margin-top:0.8rem;">Supporting sources</div>', unsafe_allow_html=True)
+                st.markdown(source_cards_html(sources), unsafe_allow_html=True)
+
             st.markdown("</div>", unsafe_allow_html=True)
     else:
-        st.markdown("""
-        <div style='text-align:center;padding:4rem 1rem;color:#94a3b8;'>
-            <div style='font-size:2.5rem;margin-bottom:0.6rem;'>📝</div>
-            <div style='font-size:1rem;font-weight:600;color:#64748b;margin-bottom:0.3rem;'>No changes yet</div>
-            <div style='font-size:0.87rem;'>Go to Analyze & Rewrite, select a flagged sentence,<br>get an AI rewrite, and click Accept — it will appear here.</div>
-        </div>""", unsafe_allow_html=True)
+        st.markdown(
+            """
+            <div style='text-align:center;padding:4rem 1rem;color:#94a3b8;'>
+                <div style='font-size:2.5rem;margin-bottom:0.6rem;'>📝</div>
+                <div style='font-size:1rem;font-weight:600;color:#64748b;margin-bottom:0.3rem;'>No accepted changes yet</div>
+                <div style='font-size:0.87rem;'>Go to Analyze & Rewrite, select a flagged sentence,<br>research the web, and accept a source-backed update.</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
