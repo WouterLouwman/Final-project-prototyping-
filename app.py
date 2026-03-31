@@ -374,25 +374,28 @@ st.markdown("""
     }
     .stButton > button:hover { background: #2d2d4e !important; transform: translateY(-1px); }
 
-    /* SENTENCE SELECTION BUTTONS */
-    div.sent-danger .stButton > button {
+    /* SENTENCE BADGE BUTTONS */
+    div.badge-danger .stButton > button {
         background: #fff1f1 !important; color: #7f1d1d !important;
-        border: 1.5px solid #fca5a5 !important; border-radius: 10px !important;
-        text-align: left !important; font-size: 0.84rem !important;
-        font-weight: 500 !important; padding: 0.55rem 0.9rem !important;
-        transform: none !important;
+        border: 1.5px solid #fca5a5 !important;
+        border-radius: 999px !important;
+        font-size: 0.78rem !important; font-weight: 700 !important;
+        padding: 0.25rem 0.65rem !important;
+        min-width: 2rem !important; transform: none !important;
     }
-    div.sent-danger .stButton > button:hover { background: #fee2e2 !important; border-color: #ef4444 !important; }
-    div.sent-warning .stButton > button {
+    div.badge-danger .stButton > button:hover { background: #fee2e2 !important; border-color: #ef4444 !important; }
+    div.badge-warning .stButton > button {
         background: #fffbeb !important; color: #78450a !important;
-        border: 1.5px solid #fcd34d !important; border-radius: 10px !important;
-        text-align: left !important; font-size: 0.84rem !important;
-        font-weight: 500 !important; padding: 0.55rem 0.9rem !important;
-        transform: none !important;
+        border: 1.5px solid #fcd34d !important;
+        border-radius: 999px !important;
+        font-size: 0.78rem !important; font-weight: 700 !important;
+        padding: 0.25rem 0.65rem !important;
+        min-width: 2rem !important; transform: none !important;
     }
-    div.sent-warning .stButton > button:hover { background: #fef3c7 !important; border-color: #f59e0b !important; }
-    div.sent-selected .stButton > button {
+    div.badge-warning .stButton > button:hover { background: #fef3c7 !important; border-color: #f59e0b !important; }
+    div.badge-selected .stButton > button {
         outline: 2.5px solid #1a1a2e !important; outline-offset: 1px !important;
+        font-weight: 800 !important;
     }
 
     /* SIDEBAR */
@@ -670,24 +673,25 @@ with tab1:
             </div>""", unsafe_allow_html=True)
 
             if risky:
-                st.markdown("<div style='height:0.9rem'></div>", unsafe_allow_html=True)
-                st.markdown('<div class="slabel"><span class="slabel-dot"></span>Click a sentence to inspect &amp; rewrite</div>', unsafe_allow_html=True)
+                st.markdown("<div style='height:0.6rem'></div>", unsafe_allow_html=True)
+                st.markdown('<div class="slabel"><span class="slabel-dot"></span>Select a flagged sentence</div>', unsafe_allow_html=True)
+                badge_cols = st.columns(len(risky))
                 for idx, item in enumerate(risky):
                     is_selected = item["sentence"] == st.session_state.selected_sentence
                     icon = "🔴" if item["label"] == "danger" else "🟡"
-                    short = item["sentence"][:85] + ("..." if len(item["sentence"]) > 85 else "")
-                    color_cls = "sent-danger" if item["label"] == "danger" else "sent-warning"
-                    sel_cls = " sent-selected" if is_selected else ""
-                    st.markdown(f'<div class="{color_cls}{sel_cls}">', unsafe_allow_html=True)
-                    if st.button(f"{icon}  {short}", key=f"sel_{idx}", use_container_width=True):
-                        if item["sentence"] != st.session_state.selected_sentence:
-                            st.session_state.selected_sentence = item["sentence"]
-                            st.session_state.ai_result = None
-                        else:
-                            st.session_state.selected_sentence = None
-                            st.session_state.ai_result = None
-                        st.rerun()
-                    st.markdown('</div>', unsafe_allow_html=True)
+                    color_cls = "badge-danger" if item["label"] == "danger" else "badge-warning"
+                    sel_cls = " badge-selected" if is_selected else ""
+                    with badge_cols[idx]:
+                        st.markdown(f'<div class="{color_cls}{sel_cls}">', unsafe_allow_html=True)
+                        if st.button(f"{icon} {idx+1}", key=f"sel_{idx}"):
+                            if item["sentence"] != st.session_state.selected_sentence:
+                                st.session_state.selected_sentence = item["sentence"]
+                                st.session_state.ai_result = None
+                            else:
+                                st.session_state.selected_sentence = None
+                                st.session_state.ai_result = None
+                            st.rerun()
+                        st.markdown('</div>', unsafe_allow_html=True)
             else:
                 st.markdown("<div style='margin-top:0.8rem;font-size:0.88rem;color:#22c55e;font-weight:600;'>✅ All flagged sentences have been rewritten!</div>", unsafe_allow_html=True)
 
