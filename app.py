@@ -16,7 +16,15 @@ st.set_page_config(
 )
 
 CURRENT_YEAR = datetime.datetime.now().year
-client = OpenAI(api_key=st.secrets.get("OPENAI_API_KEY", os.getenv("OPENAI_API_KEY")))
+
+api_key = os.getenv("OPENAI_API_KEY")
+if not api_key:
+    try:
+        api_key = st.secrets["OPENAI_API_KEY"]
+    except Exception:
+        api_key = None
+
+client = OpenAI(api_key=api_key)
 
 # --------------------------------------------------
 # CONFIG
@@ -199,7 +207,6 @@ st.markdown("""
     }
     .b-danger { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
     .b-warning { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
-    .b-ai { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
     .b-done { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
     .b-review { background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; }
 
@@ -455,16 +462,6 @@ def response_output_text(resp: Any) -> str:
         return ""
 
 
-def get_response_dump(resp: Any) -> Dict[str, Any]:
-    try:
-        return resp.model_dump()
-    except Exception:
-        try:
-            return dict(resp)
-        except Exception:
-            return {}
-
-
 def normalize_url(url: str) -> str:
     if not url:
         return ""
@@ -483,46 +480,6 @@ def dedupe_sources(sources: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         seen.add(key)
         cleaned.append(src)
     return cleaned[:MAX_SOURCE_COUNT]
-
-
-def extract_sources_from_response_dump(resp_dump: Dict[str, Any]) -> List[Dict[str, Any]]:
-    found = []
-
-    def walk(node: Any):
-        if isinstance(node, dict):
-            if node.get("type") == "web_search_call":
-                action = node.get("action", {}) or {}
-                sources = action.get("sources", []) or []
-                results = node.get("results", []) or []
-
-                for src in sources:
-                    found.append({
-                        "publisher": src.get("site_name") or src.get("domain") or src.get("title") or "Source",
-                        "title": src.get("title") or src.get("url") or "Untitled source",
-                        "author": src.get("author") or src.get("byline") or "N/A",
-                        "date": src.get("date") or src.get("published_at") or "",
-                        "url": normalize_url(src.get("url", "")),
-                        "relevance": src.get("snippet") or src.get("description") or "Supporting web source used by the model.",
-                    })
-
-                for res in results:
-                    found.append({
-                        "publisher": res.get("site_name") or res.get("domain") or "Source",
-                        "title": res.get("title") or res.get("url") or "Untitled result",
-                        "author": res.get("author") or res.get("byline") or "N/A",
-                        "date": res.get("date") or res.get("published_at") or "",
-                        "url": normalize_url(res.get("url", "")),
-                        "relevance": res.get("snippet") or res.get("description") or "Relevant web result retrieved during research.",
-                    })
-
-            for value in node.values():
-                walk(value)
-        elif isinstance(node, list):
-            for item in node:
-                walk(item)
-
-    walk(resp_dump)
-    return dedupe_sources([s for s in found if s.get("title") or s.get("url")])
 
 
 def build_research_schema() -> Dict[str, Any]:
@@ -563,7 +520,7 @@ def build_research_schema() -> Dict[str, Any]:
     }
 
 
-def coerce_research_result(payload: Dict[str, Any], fallback_sources: List[Dict[str, Any]]) -> Dict[str, Any]:
+def coerce_research_result(payload: Dict[str, Any]) -> Dict[str, Any]:
     status = payload.get("status", "needs_manual_review")
     if status not in {"outdated", "still_valid", "uncertain", "needs_manual_review"}:
         status = "needs_manual_review"
@@ -579,12 +536,12 @@ def coerce_research_result(payload: Dict[str, Any], fallback_sources: List[Dict[
     reason = (payload.get("reason") or "").strip()
     what_changed = (payload.get("what_changed") or "").strip()
 
-    sources = payload.get("sources") or []
-    normalized_sources = []
-    for src in sources[:MAX_SOURCE_COUNT]:
+    raw_sources = payload.get("sources") or []
+    sources = []
+    for src in raw_sources[:MAX_SOURCE_COUNT]:
         if not isinstance(src, dict):
             continue
-        normalized_sources.append({
+        sources.append({
             "publisher": str(src.get("publisher", "Source")).strip(),
             "title": str(src.get("title", "Untitled source")).strip(),
             "author": str(src.get("author", "N/A")).strip(),
@@ -593,7 +550,7 @@ def coerce_research_result(payload: Dict[str, Any], fallback_sources: List[Dict[
             "relevance": str(src.get("relevance", "Relevant supporting source.")).strip(),
         })
 
-    merged_sources = dedupe_sources(normalized_sources + fallback_sources)
+    sources = dedupe_sources(sources)
 
     if not reason:
         reason = "The model could not clearly justify this result, so manual review is recommended."
@@ -605,7 +562,7 @@ def coerce_research_result(payload: Dict[str, Any], fallback_sources: List[Dict[
     if status in {"uncertain", "needs_manual_review"} and confidence > 0.75:
         confidence = 0.75
 
-    if not merged_sources:
+    if not sources:
         status = "needs_manual_review"
         confidence = min(confidence, 0.5)
         reason = "No reliable recent sources were found to support an automatic update."
@@ -616,7 +573,7 @@ def coerce_research_result(payload: Dict[str, Any], fallback_sources: List[Dict[
         "reason": reason,
         "what_changed": what_changed,
         "rewrite": rewrite,
-        "sources": merged_sources,
+        "sources": sources,
     }
 
 
@@ -672,7 +629,6 @@ Selected sentence:
     response = client.responses.create(
         model=RESEARCH_MODEL,
         tools=[{"type": "web_search"}],
-        include=["web_search_call.results", "web_search_call.action.sources"],
         input=prompt,
         text={
             "format": {
@@ -684,8 +640,6 @@ Selected sentence:
     )
 
     raw_text = response_output_text(response)
-    resp_dump = get_response_dump(response)
-    fallback_sources = extract_sources_from_response_dump(resp_dump)
 
     try:
         payload = json.loads(raw_text)
@@ -696,10 +650,10 @@ Selected sentence:
             "reason": "The model response could not be parsed into structured research output.",
             "what_changed": "No reliable automatic change summary was available.",
             "rewrite": "",
-            "sources": fallback_sources,
+            "sources": [],
         }
 
-    return coerce_research_result(payload, fallback_sources)
+    return coerce_research_result(payload)
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
