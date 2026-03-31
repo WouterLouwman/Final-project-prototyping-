@@ -416,7 +416,8 @@ st.markdown("""
     hr { border-color: #e4e1db !important; }
 
     /* HIDDEN SENTENCE SELECTOR INPUT */
-    div.hidden-sent-input { position:absolute; opacity:0; pointer-events:none; height:1px; overflow:hidden; }
+    div.hidden-sent-input { visibility:hidden !important; height:0 !important; overflow:hidden !important; margin:0 !important; padding:0 !important; }
+    div.hidden-sent-input * { height:0 !important; min-height:0 !important; padding:0 !important; margin:0 !important; border:none !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -660,21 +661,17 @@ with tab1:
 
         st.markdown("<div style='height:0.2rem'></div>", unsafe_allow_html=True)
 
-        # MAIN LAYOUT
-        left, right = st.columns([1.5, 1.0], gap="large")
+        # MAIN LAYOUT — article left, chat right
+        art_col, chat_col = st.columns([1.6, 1.0], gap="large")
 
-        with left:
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.markdown('<div class="slabel"><span class="slabel-dot"></span>Analysed Article — click a highlighted sentence</div>', unsafe_allow_html=True)
-
-            # Hidden input: JS writes clicked sentence index here
+        with art_col:
+            # Hidden input bridge for JS clicks
             st.markdown('<div class="hidden-sent-input">', unsafe_allow_html=True)
             raw_sel = st.text_input("__sentsel__", key="sent_sel_input",
                                     placeholder="__SENTENCE_SELECT__",
                                     label_visibility="collapsed")
             st.markdown('</div>', unsafe_allow_html=True)
 
-            # Handle click from JS
             if raw_sel and raw_sel.isdigit():
                 clicked_idx = int(raw_sel)
                 if 0 <= clicked_idx < len(results) and results[clicked_idx]["label"] != "safe":
@@ -685,66 +682,54 @@ with tab1:
                             st.session_state.ai_result = None
                             st.rerun()
 
+            # ARTICLE
+            st.markdown('<div class="card">', unsafe_allow_html=True)
+            st.markdown('<div class="slabel"><span class="slabel-dot"></span>Analysed Article — click a highlighted sentence</div>', unsafe_allow_html=True)
+
             article_html = render_article(results, st.session_state.rewrites, st.session_state.selected_sentence)
-
-            component_html = f"""<!DOCTYPE html>
-<html><head><style>
-  body {{ margin:0; padding:1rem 1.2rem; font-family:'Inter',system-ui,sans-serif;
-         font-size:0.97rem; line-height:2.2; color:#1a1a2e;
-         background:#fafbfc; border:1px solid #dde3ec; border-radius:16px; }}
-  .s-safe {{ display:inline; color:#1a1a2e; }}
-  .s-rewritten {{ display:inline; background:#f0fdf4; color:#14532d;
-    border:1.5px solid #86efac; border-radius:6px; padding:2px 8px; margin:1px; font-weight:500; }}
-  .s-warning {{ display:inline; background:#fffbeb; color:#78450a;
-    border:1.5px solid #fcd34d; border-radius:6px; padding:2px 8px; margin:1px;
-    cursor:pointer; transition:all 0.15s; }}
-  .s-warning:hover {{ background:#fef3c7; border-color:#f59e0b; box-shadow:0 2px 8px rgba(245,158,11,0.25); }}
-  .s-danger {{ display:inline; background:#fff1f1; color:#7f1d1d;
-    border:1.5px solid #fca5a5; border-radius:6px; padding:2px 8px; margin:1px;
-    cursor:pointer; transition:all 0.15s; }}
-  .s-danger:hover {{ background:#fee2e2; border-color:#ef4444; box-shadow:0 2px 8px rgba(239,68,68,0.25); }}
-  .s-selected {{ outline:2.5px solid #1a1a2e !important; outline-offset:2px;
-    box-shadow:0 2px 12px rgba(26,26,46,0.22) !important; }}
-</style></head>
-<body>
-  {article_html}
-  <script>
-    document.querySelectorAll('[data-sent-idx]').forEach(function(el) {{
-      el.addEventListener('click', function() {{
-        var idx = this.getAttribute('data-sent-idx');
-        var inputs = window.parent.document.querySelectorAll('input[placeholder="__SENTENCE_SELECT__"]');
-        if (inputs.length > 0) {{
-          var setter = Object.getOwnPropertyDescriptor(window.parent.HTMLInputElement.prototype, 'value').set;
-          setter.call(inputs[0], idx);
-          inputs[0].dispatchEvent(new Event('input', {{bubbles: true}}));
+            component_html = f"""<!DOCTYPE html><html><head><style>
+  body{{margin:0;padding:1rem 1.2rem;font-family:'Inter',system-ui,sans-serif;
+       font-size:0.97rem;line-height:2.2;color:#1a1a2e;background:transparent;}}
+  .s-safe{{display:inline;color:#1a1a2e;}}
+  .s-rewritten{{display:inline;background:#f0fdf4;color:#14532d;border:1.5px solid #86efac;border-radius:6px;padding:2px 8px;margin:1px;font-weight:500;}}
+  .s-warning{{display:inline;background:#fffbeb;color:#78450a;border:1.5px solid #fcd34d;border-radius:6px;padding:2px 8px;margin:1px;cursor:pointer;transition:all 0.15s;}}
+  .s-warning:hover{{background:#fef3c7;border-color:#f59e0b;box-shadow:0 2px 8px rgba(245,158,11,0.3);}}
+  .s-danger{{display:inline;background:#fff1f1;color:#7f1d1d;border:1.5px solid #fca5a5;border-radius:6px;padding:2px 8px;margin:1px;cursor:pointer;transition:all 0.15s;}}
+  .s-danger:hover{{background:#fee2e2;border-color:#ef4444;box-shadow:0 2px 8px rgba(239,68,68,0.3);}}
+  .s-selected{{outline:2.5px solid #1a1a2e!important;outline-offset:2px;box-shadow:0 2px 12px rgba(26,26,46,0.22)!important;}}
+</style></head><body>{article_html}<script>
+  document.querySelectorAll('[data-sent-idx]').forEach(function(el){{
+    el.addEventListener('click',function(){{
+      var idx=this.getAttribute('data-sent-idx');
+      try{{
+        var inputs=window.parent.document.querySelectorAll('input[placeholder="__SENTENCE_SELECT__"]');
+        if(inputs.length>0){{
+          var s=Object.getOwnPropertyDescriptor(window.parent.HTMLInputElement.prototype,'value').set;
+          s.call(inputs[0],idx);
+          inputs[0].dispatchEvent(new Event('input',{{bubbles:true}}));
         }}
-      }});
+      }}catch(e){{}}
     }});
-  </script>
-</body></html>"""
-
-            components.html(component_html, height=280, scrolling=True)
+  }});
+</script></body></html>"""
+            components.html(component_html, height=260, scrolling=True)
 
             st.markdown("""<div class="legend">
                 <div class="lpill">🟡 Yellow — review recommended</div>
                 <div class="lpill">🔴 Red — likely outdated</div>
                 <div class="lpill">🟢 Green — rewritten</div>
             </div>""", unsafe_allow_html=True)
-
             if not risky:
                 st.markdown("<div style='margin-top:0.8rem;font-size:0.88rem;color:#22c55e;font-weight:600;'>✅ All flagged sentences have been rewritten!</div>", unsafe_allow_html=True)
-
             st.markdown('</div>', unsafe_allow_html=True)
 
-        with right:
-            # INSPECTOR
-            st.markdown('<div class="card" style="margin-bottom:0.8rem;">', unsafe_allow_html=True)
-            st.markdown('<div class="slabel"><span class="slabel-dot"></span>Inspector & Rewriter</div>', unsafe_allow_html=True)
-
+            # INSPECTOR — pops up below article when sentence is selected
             sel_sentence = st.session_state.selected_sentence
             sel_item = next((r for r in results if r["sentence"] == sel_sentence), None)
 
             if sel_item:
+                st.markdown("<div style='height:0.7rem'></div>", unsafe_allow_html=True)
+                st.markdown('<div class="card">', unsafe_allow_html=True)
                 badge_cls = "b-danger" if sel_item["label"] == "danger" else "b-warning"
                 badge_txt = "🔴 Likely outdated" if sel_item["label"] == "danger" else "🟡 Time-sensitive"
                 q_cls = "inspector-danger" if sel_item["label"] == "danger" else "inspector-warning"
@@ -761,19 +746,14 @@ with tab1:
 
                 if st.button("✨  Rewrite this sentence", use_container_width=True, key="rewrite_btn"):
                     with st.spinner("AI is rewriting..."):
-                        result = ai_rewrite(sel_item["sentence"])
-                        st.session_state.ai_result = result
+                        st.session_state.ai_result = ai_rewrite(sel_item["sentence"])
 
-                # SHOW AI RESULT
                 if st.session_state.ai_result:
                     res = st.session_state.ai_result
-                    st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
                     st.markdown('<div class="badge b-ai">✨ AI Suggestion</div>', unsafe_allow_html=True)
-
                     if res.get("rewrite"):
                         st.markdown('<div class="slabel">New sentence</div>', unsafe_allow_html=True)
                         st.markdown(f"<div class='ai-new-sentence'>{escape(res['rewrite'])}</div>", unsafe_allow_html=True)
-
                     if res.get("source_name"):
                         st.markdown('<div class="slabel">Verify here</div>', unsafe_allow_html=True)
                         src_article = res.get("source_article", "")
@@ -790,10 +770,7 @@ with tab1:
                             <div style='font-size:0.78rem;color:#64748b;margin-top:0.1rem;'>{meta_line}</div>
                             <div class="source-desc" style='margin-top:0.4rem;'>{escape(res.get('source_what',''))}</div>
                         </div>""", unsafe_allow_html=True)
-
-                    st.markdown("<div style='height:0.6rem'></div>", unsafe_allow_html=True)
-
-                    # ACCEPT BUTTON
+                    st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
                     if st.button("✅  Accept & replace sentence", use_container_width=True, key="accept_btn"):
                         orig = sel_item["sentence"]
                         new = res["rewrite"]
@@ -810,20 +787,12 @@ with tab1:
                         st.session_state.selected_sentence = None
                         st.session_state.ai_result = None
                         st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
 
-            else:
-                st.markdown("""<div class="inspector-empty">
-                    <div style='font-size:2rem;margin-bottom:0.5rem;'>👆</div>
-                    <div style='font-size:0.9rem;font-weight:600;color:#64748b;margin-bottom:0.2rem;'>Select a flagged sentence</div>
-                    <div style='font-size:0.82rem;'>Click one of the flagged sentences on the left to inspect and rewrite it.</div>
-                </div>""", unsafe_allow_html=True)
-
-            st.markdown('</div>', unsafe_allow_html=True)
-
+        with chat_col:
             # CHAT
-            st.markdown('<div class="card" style="margin-top:0.8rem;">', unsafe_allow_html=True)
+            st.markdown('<div class="card">', unsafe_allow_html=True)
             st.markdown('<div class="slabel"><span class="slabel-dot"></span>AI Assistant</div>', unsafe_allow_html=True)
-
             if st.session_state.chat_history:
                 chat_html = '<div class="chat-box">'
                 for msg in st.session_state.chat_history[-8:]:
@@ -835,7 +804,6 @@ with tab1:
                 st.markdown(chat_html, unsafe_allow_html=True)
             else:
                 st.markdown('<div style="text-align:center;padding:1rem 0 0.5rem;font-size:0.84rem;color:#94a3b8;">Ask anything about your article</div>', unsafe_allow_html=True)
-
             st.markdown("<div class='chat-input-row'>", unsafe_allow_html=True)
             ci, cb = st.columns([5, 1], gap="small")
             with ci:
@@ -843,14 +811,12 @@ with tab1:
             with cb:
                 send = st.button("Send", use_container_width=True, key="send_btn")
             st.markdown("</div>", unsafe_allow_html=True)
-
             if send and user_msg.strip():
                 st.session_state.chat_history.append({"role": "user", "content": user_msg.strip()})
                 with st.spinner(""):
                     reply = ai_chat(st.session_state.chat_history, st.session_state.article_text)
                 st.session_state.chat_history.append({"role": "assistant", "content": reply})
                 st.rerun()
-
             st.markdown("<div class='chip-row'>", unsafe_allow_html=True)
             q1, q2 = st.columns(2)
             with q1:
@@ -872,7 +838,6 @@ with tab1:
                     st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
-
             st.markdown('</div>', unsafe_allow_html=True)
 
     else:
