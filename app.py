@@ -48,7 +48,7 @@ st.markdown("""
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-    .stApp { background: linear-gradient(135deg, #f0f4ff 0%, #faf5ff 50%, #f0f9ff 100%); color: #1a1a2e; }
+    .stApp { background: linear-gradient(160deg, #e8eaff 0%, #f5f0ff 40%, #e0f2fe 100%); color: #1a1a2e; }
     .block-container { max-width: 1200px; padding-top: 0; padding-bottom: 3rem; }
 
     .topbar {
@@ -74,11 +74,20 @@ st.markdown("""
         border-radius: 999px; padding: 0.28rem 0.8rem;
     }
 
-    .page-header { margin-bottom: 1.8rem; }
+    .page-header {
+        margin-bottom: 1.8rem;
+        padding: 1.4rem 1.8rem;
+        background: linear-gradient(135deg, #fff 0%, #f5f3ff 100%);
+        border-radius: 20px;
+        border-left: 5px solid #7c3aed;
+        box-shadow: 0 4px 20px rgba(124,58,237,0.1);
+    }
     .page-title {
         font-family: 'Playfair Display', serif;
         font-size: 2rem; font-weight: 700;
-        color: #1a1a2e; margin-bottom: 0.3rem;
+        background: linear-gradient(135deg, #1a1a2e, #7c3aed);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        margin-bottom: 0.3rem;
     }
     .page-sub { font-size: 0.9rem; color: #64748b; line-height: 1.6; }
 
@@ -96,11 +105,11 @@ st.markdown("""
     .stTabs [data-baseweb="tab-panel"] { padding-top: 1.2rem; }
 
     .card {
-        background: #fff;
-        border: 1px solid #e8e4f3;
+        background: linear-gradient(160deg, #ffffff 0%, #f8f5ff 100%);
+        border: 1px solid #ddd6fe;
         border-radius: 20px;
         padding: 1.4rem 1.5rem;
-        box-shadow: 0 4px 24px rgba(109,40,217,0.07), 0 1px 4px rgba(26,26,46,0.05);
+        box-shadow: 0 4px 24px rgba(109,40,217,0.10), 0 1px 4px rgba(26,26,46,0.05);
     }
 
     .slabel {
@@ -116,10 +125,10 @@ st.markdown("""
     }
 
     .mcard {
-        flex: 1; background: #fff;
-        border: 1px solid #e8e4f3;
+        flex: 1; background: linear-gradient(135deg, #fff 0%, #f5f3ff 100%);
+        border: 1px solid #ddd6fe;
         border-radius: 16px; padding: 1rem 1.2rem;
-        box-shadow: 0 4px 16px rgba(109,40,217,0.06);
+        box-shadow: 0 4px 16px rgba(109,40,217,0.10);
     }
     .mcard-accent {
         flex: 1; background: linear-gradient(135deg, #1a1a2e 0%, #2d1b69 100%);
@@ -188,18 +197,18 @@ st.markdown("""
     }
 
     .inspector-sentence {
-        background: #fafbfc;
+        background: linear-gradient(135deg, #f8f5ff 0%, #fff 100%);
         border-radius: 14px;
         padding: 1rem 1.2rem;
         font-size: 0.97rem;
         line-height: 1.75;
         color: #1a1a2e;
-        border-left: 4px solid #dde3ec;
+        border-left: 4px solid #ddd6fe;
         margin-bottom: 1rem;
         font-style: italic;
     }
-    .inspector-danger { border-left-color: #ef4444; }
-    .inspector-warning { border-left-color: #f59e0b; }
+    .inspector-danger { border-left-color: #ef4444; background: linear-gradient(135deg,#fff5f5,#fff) !important; }
+    .inspector-warning { border-left-color: #f59e0b; background: linear-gradient(135deg,#fffbeb,#fff) !important; }
 
     .badge {
         display: inline-block; border-radius: 999px;
@@ -328,13 +337,19 @@ st.markdown("""
         box-shadow: 0 4px 14px rgba(45,27,105,0.4) !important;
     }
 
-    section[data-testid="stSidebar"] { background: #fff; border-right: 1px solid #e4e1db; }
-    section[data-testid="stSidebar"] * { color: #64748b !important; }
-    section[data-testid="stSidebar"] h3 { color: #1a1a2e !important; font-family: 'Playfair Display', serif !important; }
-    section[data-testid="stSidebar"] strong { color: #1a1a2e !important; }
+    section[data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #1a1a2e 0%, #2d1b69 100%);
+        border-right: none;
+    }
+    section[data-testid="stSidebar"] * { color: #c4b5fd !important; }
+    section[data-testid="stSidebar"] h3 { color: #f0c95a !important; font-family: 'Playfair Display', serif !important; }
+    section[data-testid="stSidebar"] strong { color: #fff !important; }
     section[data-testid="stSidebar"] .stButton > button {
-        background: #f7f6f2 !important; color: #1a1a2e !important;
-        border: 1px solid #e4e1db !important;
+        background: rgba(124,58,237,0.3) !important; color: #e9d5ff !important;
+        border: 1px solid rgba(167,139,250,0.4) !important;
+    }
+    section[data-testid="stSidebar"] .stButton > button:hover {
+        background: rgba(124,58,237,0.5) !important;
     }
 
     .stSelectbox > div > div {
@@ -719,7 +734,6 @@ DEMO = (
 # --------------------------------------------------
 DEFAULT_STATE = {
     "article_text": DEMO,
-    "chat_history": [],
     "results": [],
     "analyzed": False,
     "selected_sentence": None,
@@ -764,9 +778,6 @@ with st.sidebar:
             "research_result": None,
             "research_error": None,
         })
-
-    if st.button("Clear chat", use_container_width=True):
-        st.session_state.chat_history = []
 
     st.markdown("---")
     st.markdown("### How it works")
@@ -905,7 +916,7 @@ if True:
             )
         with mc2:
             st.markdown(
-                f"""<div class="mcard">
+                f"""<div class="mcard" style="border-top:3px solid #ef4444;">
                     <div class="mval mval-red">{len(risky)}</div>
                     <div class="mlbl">Still Flagged</div>
                 </div>""",
@@ -913,15 +924,15 @@ if True:
             )
         with mc3:
             st.markdown(
-                f"""<div class="mcard">
-                    <div class="mval">{len(results)}</div>
+                f"""<div class="mcard" style="border-top:3px solid #7c3aed;">
+                    <div class="mval" style="color:#7c3aed;">{len(results)}</div>
                     <div class="mlbl">Total Sentences</div>
                 </div>""",
                 unsafe_allow_html=True,
             )
         with mc4:
             st.markdown(
-                f"""<div class="mcard">
+                f"""<div class="mcard" style="border-top:3px solid #22c55e;">
                     <div class="mval mval-green">{rewrites_done}</div>
                     <div class="mlbl">Accepted</div>
                 </div>""",
@@ -929,9 +940,7 @@ if True:
             )
 
         st.markdown("<div style='height:0.2rem'></div>", unsafe_allow_html=True)
-        art_col, chat_col = st.columns([1.6, 1.0], gap="large")
-
-        with art_col:
+        if True:
             st.markdown('<div style="position:fixed;top:-9999px;left:-9999px;opacity:0;pointer-events:none;">', unsafe_allow_html=True)
             btn_clicks = [st.button(f"§{i}§", key=f"hbtn_{i}") for i in range(len(results))]
             st.markdown("</div>", unsafe_allow_html=True)
@@ -946,7 +955,7 @@ if True:
                     st.session_state.research_error = None
                     st.rerun()
 
-            st.markdown('<div class="card">', unsafe_allow_html=True)
+            st.markdown('<div class="card" style="border-top:3px solid #7c3aed;">', unsafe_allow_html=True)
             st.markdown(
                 '<div class="slabel"><span class="slabel-dot"></span>Analysed Article — click a highlighted sentence</div>',
                 unsafe_allow_html=True,
@@ -1110,70 +1119,6 @@ if True:
                             st.rerun()
 
                 st.markdown("</div>", unsafe_allow_html=True)
-
-        with chat_col:
-            st.markdown('<div class="card">', unsafe_allow_html=True)
-            st.markdown('<div class="slabel"><span class="slabel-dot"></span>AI Assistant</div>', unsafe_allow_html=True)
-            if st.session_state.chat_history:
-                chat_html = '<div class="chat-box">'
-                for msg in st.session_state.chat_history[-8:]:
-                    if msg["role"] == "user":
-                        chat_html += f'<div><div class="cn cn-r">You</div><div class="cb-user">{escape(msg["content"])}</div></div>'
-                    else:
-                        chat_html += f'<div><div class="cn cn-ai">TimeTravel AI</div><div class="cb-ai">{escape(msg["content"]).replace(chr(10), "<br>")}</div></div>'
-                chat_html += '</div>'
-                st.markdown(chat_html, unsafe_allow_html=True)
-            else:
-                st.markdown('<div style="text-align:center;padding:1rem 0 0.5rem;font-size:0.84rem;color:#94a3b8;">Ask anything about your article</div>', unsafe_allow_html=True)
-
-            st.markdown("<div class='chat-input-row'>", unsafe_allow_html=True)
-            ci, cb = st.columns([5, 1], gap="small")
-            with ci:
-                user_msg = st.text_input("msg", placeholder="Ask a question...", label_visibility="collapsed", key="chat_in")
-            with cb:
-                send = st.button("Send", use_container_width=True, key="send_btn")
-            st.markdown("</div>", unsafe_allow_html=True)
-
-            if send and user_msg.strip():
-                st.session_state.chat_history.append({"role": "user", "content": user_msg.strip()})
-                try:
-                    with st.spinner(""):
-                        reply = ask_editorial_chat(user_msg.strip(), st.session_state.article_text)
-                except Exception as e:
-                    reply = f"I couldn't complete that research request: {e}"
-                st.session_state.chat_history.append({"role": "assistant", "content": reply})
-                st.rerun()
-
-            st.markdown("<div class='chip-row'>", unsafe_allow_html=True)
-            q1, q2 = st.columns(2)
-            with q1:
-                st.markdown("<div class='chip'>", unsafe_allow_html=True)
-                if st.button("What's outdated?", use_container_width=True, key="qp1"):
-                    question = "Which sentences in this article might be outdated, and why?"
-                    st.session_state.chat_history.append({"role": "user", "content": question})
-                    try:
-                        with st.spinner(""):
-                            reply = ask_editorial_chat(question, st.session_state.article_text)
-                    except Exception as e:
-                        reply = f"I couldn't complete that request: {e}"
-                    st.session_state.chat_history.append({"role": "assistant", "content": reply})
-                    st.rerun()
-                st.markdown("</div>", unsafe_allow_html=True)
-            with q2:
-                st.markdown("<div class='chip'>", unsafe_allow_html=True)
-                if st.button("Suggest sources", use_container_width=True, key="qp2"):
-                    question = "Suggest reputable sources to verify the key claims in this article."
-                    st.session_state.chat_history.append({"role": "user", "content": question})
-                    try:
-                        with st.spinner(""):
-                            reply = ask_editorial_chat(question, st.session_state.article_text)
-                    except Exception as e:
-                        reply = f"I couldn't complete that request: {e}"
-                    st.session_state.chat_history.append({"role": "assistant", "content": reply})
-                    st.rerun()
-                st.markdown("</div>", unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
 
     else:
         st.markdown(
