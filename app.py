@@ -48,17 +48,18 @@ st.markdown("""
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-    .stApp { background: #f4f6f9; color: #1a1a2e; }
+    .stApp { background: linear-gradient(135deg, #f0f4ff 0%, #faf5ff 50%, #f0f9ff 100%); color: #1a1a2e; }
     .block-container { max-width: 1200px; padding-top: 0; padding-bottom: 3rem; }
 
     .topbar {
-        background: #1a1a2e;
+        background: linear-gradient(135deg, #1a1a2e 0%, #2d1b69 50%, #1a1a2e 100%);
         padding: 1rem 2rem;
         display: flex;
         align-items: center;
         justify-content: space-between;
         margin: -4rem -4rem 2rem -4rem;
         border-bottom: 3px solid #f0c95a;
+        box-shadow: 0 4px 20px rgba(26,26,46,0.3);
     }
     .topbar-logo {
         font-family: 'Playfair Display', serif;
@@ -68,8 +69,8 @@ st.markdown("""
     .topbar-tag {
         font-size: 0.68rem; font-weight: 600;
         letter-spacing: 0.12em; text-transform: uppercase;
-        color: #94a3b8; background: rgba(255,255,255,0.07);
-        border: 1px solid rgba(255,255,255,0.12);
+        color: #c4b5fd; background: rgba(167,139,250,0.15);
+        border: 1px solid rgba(167,139,250,0.3);
         border-radius: 999px; padding: 0.28rem 0.8rem;
     }
 
@@ -82,7 +83,7 @@ st.markdown("""
     .page-sub { font-size: 0.9rem; color: #64748b; line-height: 1.6; }
 
     .stTabs [data-baseweb="tab-list"] {
-        background: #e2e8f0; border-radius: 12px;
+        background: #ede9f8; border-radius: 12px;
         padding: 3px; gap: 3px; border: none;
     }
     .stTabs [data-baseweb="tab"] {
@@ -90,16 +91,16 @@ st.markdown("""
         font-weight: 600; font-size: 0.87rem;
         color: #64748b; background: transparent; border: none;
     }
-    .stTabs [aria-selected="true"] { background: #1a1a2e !important; color: #fff !important; }
+    .stTabs [aria-selected="true"] { background: linear-gradient(135deg,#2d1b69,#1a1a2e) !important; color: #fff !important; }
     .stTabs [data-baseweb="tab-border"] { display: none; }
     .stTabs [data-baseweb="tab-panel"] { padding-top: 1.2rem; }
 
     .card {
         background: #fff;
-        border: 1px solid #dde3ec;
+        border: 1px solid #e8e4f3;
         border-radius: 20px;
         padding: 1.4rem 1.5rem;
-        box-shadow: 0 2px 12px rgba(26,26,46,0.06);
+        box-shadow: 0 4px 24px rgba(109,40,217,0.07), 0 1px 4px rgba(26,26,46,0.05);
     }
 
     .slabel {
@@ -116,13 +117,14 @@ st.markdown("""
 
     .mcard {
         flex: 1; background: #fff;
-        border: 1px solid #dde3ec;
+        border: 1px solid #e8e4f3;
         border-radius: 16px; padding: 1rem 1.2rem;
-        box-shadow: 0 2px 8px rgba(26,26,46,0.05);
+        box-shadow: 0 4px 16px rgba(109,40,217,0.06);
     }
     .mcard-accent {
-        flex: 1; background: #1a1a2e;
+        flex: 1; background: linear-gradient(135deg, #1a1a2e 0%, #2d1b69 100%);
         border-radius: 16px; padding: 1rem 1.2rem;
+        box-shadow: 0 4px 16px rgba(45,27,105,0.3);
     }
     .mval {
         font-family: 'Playfair Display', serif;
@@ -221,15 +223,15 @@ st.markdown("""
         margin-bottom: 0.8rem;
     }
     .source-card {
-        background: #f8fbff;
-        border: 1px solid #bfdbfe;
+        background: linear-gradient(135deg, #f8fbff 0%, #f5f3ff 100%);
+        border: 1px solid #c4b5fd;
         border-radius: 14px;
         padding: 0.8rem 1rem;
         margin-bottom: 0.6rem;
     }
     .source-name {
         font-weight: 700; font-size: 0.9rem;
-        color: #1d4ed8; margin-bottom: 0.2rem;
+        color: #5b21b6; margin-bottom: 0.2rem;
     }
     .source-desc { font-size: 0.82rem; color: #475569; line-height: 1.5; }
 
@@ -314,12 +316,17 @@ st.markdown("""
 
     .stButton > button {
         border-radius: 10px !important; padding: 0.55rem 1.1rem !important;
-        border: none !important; background: #1a1a2e !important;
+        border: none !important;
+        background: linear-gradient(135deg, #2d1b69 0%, #1a1a2e 100%) !important;
         color: #fff !important; font-weight: 600 !important;
         font-size: 0.87rem !important; font-family: 'Inter', sans-serif !important;
-        transition: all 0.15s;
+        transition: all 0.2s; box-shadow: 0 2px 8px rgba(45,27,105,0.25) !important;
     }
-    .stButton > button:hover { background: #2d2d4e !important; transform: translateY(-1px); }
+    .stButton > button:hover {
+        background: linear-gradient(135deg, #3d2b89 0%, #2d2d4e 100%) !important;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(45,27,105,0.4) !important;
+    }
 
     section[data-testid="stSidebar"] { background: #fff; border-right: 1px solid #e4e1db; }
     section[data-testid="stSidebar"] * { color: #64748b !important; }
@@ -713,7 +720,6 @@ DEMO = (
 DEFAULT_STATE = {
     "article_text": DEMO,
     "chat_history": [],
-    "changes_log": [],
     "results": [],
     "analyzed": False,
     "selected_sentence": None,
@@ -761,10 +767,6 @@ with st.sidebar:
 
     if st.button("Clear chat", use_container_width=True):
         st.session_state.chat_history = []
-
-    if st.button("Clear changes", use_container_width=True):
-        st.session_state.changes_log = []
-        st.session_state.rewrites = {}
 
     st.markdown("---")
     st.markdown("### How it works")
@@ -857,12 +859,7 @@ def source_cards_html(sources: List[Dict[str, Any]]) -> str:
 # --------------------------------------------------
 # TABS
 # --------------------------------------------------
-tab1, tab2 = st.tabs(["📋  Analyze & Rewrite", "📝  Changes Log"])
-
-# ==================================================
-# TAB 1
-# ==================================================
-with tab1:
+if True:
     inc, btnc = st.columns([5.5, 1], gap="small")
     with inc:
         article_text = st.text_area(
@@ -966,6 +963,26 @@ with tab1:
                 .s-danger:hover{{background:#fee2e2;border-color:#ef4444;box-shadow:0 2px 8px rgba(239,68,68,0.3);}}
                 .s-selected{{outline:2.5px solid #1a1a2e!important;outline-offset:2px;box-shadow:0 2px 12px rgba(26,26,46,0.22)!important;}}
             </style></head><body>{article_html}<script>
+                function hideSecretBtns() {{
+                    try {{
+                        window.parent.document.querySelectorAll('button').forEach(function(btn) {{
+                            if (/^§\d+§$/.test(btn.innerText.trim())) {{
+                                btn.style.position = 'fixed';
+                                btn.style.top = '-9999px';
+                                btn.style.left = '-9999px';
+                                btn.style.width = '1px';
+                                btn.style.height = '1px';
+                                btn.style.opacity = '0';
+                                btn.style.pointerEvents = 'none';
+                                var p = btn.parentElement;
+                                if (p) {{ p.style.position = 'fixed'; p.style.top = '-9999px'; p.style.left = '-9999px'; }}
+                            }}
+                        }});
+                    }} catch(e) {{}}
+                }}
+                hideSecretBtns();
+                setInterval(hideSecretBtns, 300);
+
                 document.querySelectorAll('[data-sent-idx]').forEach(function(el){{
                     el.addEventListener('click', function(){{
                         var idx = this.getAttribute('data-sent-idx');
@@ -1082,17 +1099,6 @@ with tab1:
                             orig = sel_item["sentence"]
                             new = result["rewrite"].strip() or orig
                             st.session_state.rewrites[orig] = new
-                            st.session_state.changes_log.append({
-                                "original": orig,
-                                "rewrite": new,
-                                "status": result.get("status", "needs_manual_review"),
-                                "confidence": float(result.get("confidence", 0.0)),
-                                "reason": result.get("reason", ""),
-                                "what_changed": result.get("what_changed", ""),
-                                "sources": result.get("sources", []),
-                                "label": sel_item["label"],
-                                "score": sel_item["score"],
-                            })
                             st.session_state.selected_sentence = None
                             st.session_state.research_result = None
                             st.session_state.research_error = None
@@ -1182,66 +1188,3 @@ with tab1:
         )
 
 # ==================================================
-# TAB 2 — CHANGES LOG
-# ==================================================
-with tab2:
-    st.markdown('<div class="page-title" style="font-size:1.7rem;margin-bottom:0.3rem;">Changes Log</div>', unsafe_allow_html=True)
-    st.markdown(
-        f'<div class="page-sub" style="margin-bottom:1.5rem;">{len(st.session_state.changes_log)} sentence(s) accepted this session.</div>',
-        unsafe_allow_html=True,
-    )
-
-    if st.session_state.changes_log:
-        for i, c in enumerate(st.session_state.changes_log):
-            icon = "🔴" if c["label"] == "danger" else "🟡"
-            sc_color = "#ef4444" if c["score"] < 50 else "#f59e0b"
-            conf = float(c.get("confidence", 0.0))
-            status = c.get("status", "needs_manual_review")
-
-            st.markdown(
-                f"""
-                <div class="clog-card">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.9rem;gap:1rem;flex-wrap:wrap;">
-                        <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:600;color:#1a1a2e;">Sentence {i+1} {icon}</div>
-                        <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
-                            <div style="font-size:0.73rem;font-weight:700;color:{sc_color};background:#fafaf7;border:1px solid #e4e1db;border-radius:999px;padding:0.2rem 0.65rem;">Original score: {c['score']}</div>
-                            <div style="font-size:0.73rem;font-weight:700;color:{confidence_color(conf)};background:#fafaf7;border:1px solid #e4e1db;border-radius:999px;padding:0.2rem 0.65rem;">Confidence: {round(conf*100)}%</div>
-                            <div style="font-size:0.73rem;font-weight:700;color:#334155;background:#fafaf7;border:1px solid #e4e1db;border-radius:999px;padding:0.2rem 0.65rem;">Status: {escape(status.replace('_', ' '))}</div>
-                        </div>
-                    </div>
-                    <div class="diff-lbl" style="color:#ef4444;">Original</div>
-                    <div class="diff-b">{escape(c['original'])}</div>
-                    <div class="diff-lbl" style="color:#16a34a;margin-top:0.5rem;">Rewritten</div>
-                    <div class="diff-a">{escape(c['rewrite'])}</div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-            if c.get("reason"):
-                st.markdown(
-                    f"<div style='font-size:0.84rem;color:#475569;line-height:1.65;margin:0.8rem 0 0.2rem;'><strong>Reason:</strong> {escape(c['reason'])}</div>",
-                    unsafe_allow_html=True,
-                )
-            if c.get("what_changed"):
-                st.markdown(
-                    f"<div style='font-size:0.84rem;color:#475569;line-height:1.65;margin:0.3rem 0 0.7rem;'><strong>What changed:</strong> {escape(c['what_changed'])}</div>",
-                    unsafe_allow_html=True,
-                )
-
-            sources = c.get("sources", [])
-            if sources:
-                st.markdown('<div class="diff-lbl" style="color:#1d4ed8;margin-top:0.8rem;">Supporting sources</div>', unsafe_allow_html=True)
-                st.markdown(source_cards_html(sources), unsafe_allow_html=True)
-
-            st.markdown("</div>", unsafe_allow_html=True)
-    else:
-        st.markdown(
-            """
-            <div style='text-align:center;padding:4rem 1rem;color:#94a3b8;'>
-                <div style='font-size:2.5rem;margin-bottom:0.6rem;'>📝</div>
-                <div style='font-size:1rem;font-weight:600;color:#64748b;margin-bottom:0.3rem;'>No accepted changes yet</div>
-                <div style='font-size:0.87rem;'>Go to Analyze & Rewrite, select a flagged sentence,<br>research the web, and accept a source-backed update.</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
