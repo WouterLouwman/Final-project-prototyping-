@@ -29,8 +29,8 @@ client = OpenAI(api_key=api_key)
 # --------------------------------------------------
 # CONFIG
 # --------------------------------------------------
-RESEARCH_MODEL = "gpt-5-mini"
-CHAT_MODEL = "gpt-5-mini"
+RESEARCH_MODEL = "gpt-4o-mini"
+CHAT_MODEL = "gpt-4o-mini"
 MAX_SOURCE_COUNT = 3
 MIN_ACCEPT_CONFIDENCE = 0.70
 RESEARCH_CONFIDENCE_RETRY_THRESHOLD = 0.65
