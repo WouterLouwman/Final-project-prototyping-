@@ -45,318 +45,222 @@ PREFERRED_SOURCE_HINT = (
 # --------------------------------------------------
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Inter:wght@300;400;500;600;700&display=swap');
 
+    /* ── Base ─────────────────────────────────────── */
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-    .stApp { background: linear-gradient(160deg, #e8eaff 0%, #f5f0ff 40%, #e0f2fe 100%); color: #1a1a2e; }
-    .block-container { max-width: 1200px; padding-top: 0; padding-bottom: 3rem; }
+    .stApp { background: #F5F1E8; color: #1C1C1C; }
+    .block-container { max-width: 860px; padding-top: 0; padding-bottom: 5rem; }
 
+    /* ── Topbar ───────────────────────────────────── */
     .topbar {
-        background: linear-gradient(135deg, #1a1a2e 0%, #2d1b69 50%, #1a1a2e 100%);
-        padding: 1rem 2rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin: -4rem -4rem 2rem -4rem;
-        border-bottom: 3px solid #f0c95a;
-        box-shadow: 0 4px 20px rgba(26,26,46,0.3);
+        background: #1C1C1C;
+        padding: 0.85rem 2rem;
+        display: flex; align-items: center; justify-content: space-between;
+        margin: -4rem -4rem 3rem -4rem;
+        border-bottom: 1px solid #2E2E2E;
     }
     .topbar-logo {
         font-family: 'Playfair Display', serif;
-        font-size: 1.5rem; font-weight: 700; color: #fff;
+        font-size: 1.3rem; font-weight: 700; color: #F5F1E8;
+        letter-spacing: 0.01em;
     }
-    .topbar-logo span { color: #f0c95a; }
+    .topbar-logo span { color: #C9A84C; }
     .topbar-tag {
-        font-size: 0.68rem; font-weight: 600;
-        letter-spacing: 0.12em; text-transform: uppercase;
-        color: #c4b5fd; background: rgba(167,139,250,0.15);
-        border: 1px solid rgba(167,139,250,0.3);
-        border-radius: 999px; padding: 0.28rem 0.8rem;
+        font-size: 0.65rem; font-weight: 400;
+        color: rgba(245,241,232,0.35);
+        letter-spacing: 0.06em; font-style: italic;
     }
 
-    .page-header {
-        margin-bottom: 1.8rem;
-        padding: 1.4rem 1.8rem;
-        background: linear-gradient(135deg, #fff 0%, #f5f3ff 100%);
-        border-radius: 20px;
-        border-left: 5px solid #7c3aed;
-        box-shadow: 0 4px 20px rgba(124,58,237,0.1);
-    }
+    /* ── Page header — pure typography, no box ────── */
+    .page-header { margin-bottom: 2.5rem; padding-bottom: 1.75rem; border-bottom: 1px solid #DDD8CE; }
     .page-title {
         font-family: 'Playfair Display', serif;
-        font-size: 2rem; font-weight: 700;
-        background: linear-gradient(135deg, #1a1a2e, #7c3aed);
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        margin-bottom: 0.3rem;
+        font-size: 2.6rem; font-weight: 700;
+        color: #1C1C1C; margin-bottom: 0.5rem; line-height: 1.15;
     }
-    .page-sub { font-size: 0.9rem; color: #64748b; line-height: 1.6; }
+    .page-sub { font-size: 0.88rem; color: #7A766E; line-height: 1.7; }
 
-    .stTabs [data-baseweb="tab-list"] {
-        background: #ede9f8; border-radius: 12px;
-        padding: 3px; gap: 3px; border: none;
-    }
-    .stTabs [data-baseweb="tab"] {
-        border-radius: 9px; padding: 0.45rem 1.3rem;
-        font-weight: 600; font-size: 0.87rem;
-        color: #64748b; background: transparent; border: none;
-    }
-    .stTabs [aria-selected="true"] { background: linear-gradient(135deg,#2d1b69,#1a1a2e) !important; color: #fff !important; }
-    .stTabs [data-baseweb="tab-border"] { display: none; }
-    .stTabs [data-baseweb="tab-panel"] { padding-top: 1.2rem; }
-
-    .card {
-        background: linear-gradient(160deg, #ffffff 0%, #f8f5ff 100%);
-        border: 1px solid #ddd6fe;
-        border-radius: 20px;
-        padding: 1.4rem 1.5rem;
-        box-shadow: 0 4px 24px rgba(109,40,217,0.10), 0 1px 4px rgba(26,26,46,0.05);
-    }
-
+    /* ── Section label — sentence case, quiet ─────── */
     .slabel {
-        font-size: 0.67rem; font-weight: 700;
-        text-transform: uppercase; letter-spacing: 0.11em;
-        color: #94a3b8; margin-bottom: 0.6rem;
-        display: flex; align-items: center; gap: 0.4rem;
+        font-size: 0.73rem; font-weight: 500;
+        color: #A8A49C; margin-bottom: 0.5rem;
+        letter-spacing: 0.02em;
+        display: flex; align-items: center; gap: 0.35rem;
     }
-    .slabel-dot {
-        width: 7px; height: 7px;
-        background: #f0c95a; border-radius: 50%;
-        display: inline-block;
+    .slabel-dot { width: 5px; height: 5px; background: #C9A84C; border-radius: 50%; display: inline-block; }
+
+    /* ── Cards — minimal, no heavy boxes ─────────── */
+    .card {
+        background: transparent; border: none; border-radius: 0;
+        padding: 0; box-shadow: none; margin-bottom: 1.5rem;
     }
 
+    /* ── Metric row — no boxes, numbers in a strip ── */
     .mcard {
-        flex: 1; background: linear-gradient(135deg, #fff 0%, #f5f3ff 100%);
-        border: 1px solid #ddd6fe;
-        border-radius: 16px; padding: 1rem 1.2rem;
-        box-shadow: 0 4px 16px rgba(109,40,217,0.10);
+        background: transparent; border: none;
+        border-right: 1px solid #DDD8CE;
+        border-radius: 0; padding: 0.5rem 2rem 0.5rem 0;
     }
     .mcard-accent {
-        flex: 1; background: linear-gradient(135deg, #1a1a2e 0%, #2d1b69 100%);
-        border-radius: 16px; padding: 1rem 1.2rem;
-        box-shadow: 0 4px 16px rgba(45,27,105,0.3);
+        background: transparent; border: none;
+        border-right: 1px solid #DDD8CE;
+        border-radius: 0; padding: 0.5rem 2rem 0.5rem 0;
     }
     .mval {
         font-family: 'Playfair Display', serif;
-        font-size: 2.2rem; font-weight: 700;
-        line-height: 1; color: #1a1a2e;
+        font-size: 2.2rem; font-weight: 700; line-height: 1; color: #1C1C1C;
     }
-    .mval-gold { color: #f0c95a; }
-    .mval-red { color: #ef4444; }
-    .mval-green { color: #22c55e; }
+    .mval-gold { color: #8B6914; }
+    .mval-red { color: #9B1C1C; }
+    .mval-green { color: #14532D; }
+    .mval-purple { color: #4C1D95; }
     .mlbl {
-        font-size: 0.69rem; font-weight: 600;
-        text-transform: uppercase; letter-spacing: 0.09em;
-        color: #64748b; margin-top: 0.2rem;
+        font-size: 0.72rem; font-weight: 400;
+        color: #A8A49C; margin-top: 0.3rem; letter-spacing: 0.01em;
     }
-    .mlbl-light { color: #94a3b8; }
+    .mlbl-light { color: #8B6914; }
+    .prog { background: #E2DDD6; border-radius: 0; height: 2px; overflow: hidden; margin-top: 1rem; }
+    .prog-bar { height: 2px; border-radius: 0; background: linear-gradient(90deg, #9B1C1C 0%, #8B6914 50%, #14532D 100%); }
 
-    .prog { background: rgba(255,255,255,0.12); border-radius: 999px; height: 5px; overflow: hidden; margin-top: 0.5rem; }
-    .prog-bar { height: 5px; border-radius: 999px; background: linear-gradient(90deg, #ef4444 0%, #f59e0b 50%, #22c55e 100%); }
-
-    .s-safe { display: inline; color: #1a1a2e; text-decoration: none; }
+    /* ── Sentence highlights ──────────────────────── */
+    .s-safe { display: inline; color: #1C1C1C; }
     .s-rewritten {
-        display: inline;
-        background: #f0fdf4;
-        color: #14532d;
-        border: 1.5px solid #86efac;
-        border-radius: 6px;
-        padding: 2px 8px; margin: 1px;
-        font-weight: 500; text-decoration: none;
+        display: inline; background: #EEF7F1; color: #14532D;
+        border-bottom: 1.5px solid #4ADE80;
+        padding: 0 3px; font-weight: 500;
     }
     .s-warning {
-        display: inline;
-        background: #fffbeb; color: #78450a;
-        border: 1.5px solid #fcd34d;
-        border-radius: 6px;
-        padding: 2px 8px; margin: 1px;
-        text-decoration: none; cursor: pointer;
-        transition: all 0.15s;
+        display: inline; background: #FEFCE8; color: #78350F;
+        border-bottom: 1.5px solid #EAB308;
+        padding: 0 3px; cursor: pointer; transition: background 0.1s;
     }
-    .s-warning:hover { background: #fef3c7; border-color: #f59e0b; box-shadow: 0 2px 8px rgba(245,158,11,0.25); }
+    .s-warning:hover { background: #FEF9C3; }
     .s-danger {
-        display: inline;
-        background: #fff1f1; color: #7f1d1d;
-        border: 1.5px solid #fca5a5;
-        border-radius: 6px;
-        padding: 2px 8px; margin: 1px;
-        text-decoration: none; cursor: pointer;
-        transition: all 0.15s;
+        display: inline; background: #FFF5F5; color: #7F1D1D;
+        border-bottom: 1.5px solid #EF4444;
+        padding: 0 3px; cursor: pointer; transition: background 0.1s;
     }
-    .s-danger:hover { background: #fee2e2; border-color: #ef4444; box-shadow: 0 2px 8px rgba(239,68,68,0.25); }
-    .s-selected {
-        outline: 2.5px solid #1a1a2e !important;
-        outline-offset: 2px;
-        box-shadow: 0 2px 12px rgba(26,26,46,0.22) !important;
-    }
+    .s-danger:hover { background: #FEE2E2; }
+    .s-selected { outline: 1.5px solid #1C1C1C !important; outline-offset: 2px; border-radius: 2px; }
 
-    .legend { display: flex; gap: 0.45rem; flex-wrap: wrap; margin-top: 0.8rem; }
-    .lpill {
-        background: #fff; border: 1px solid #dde3ec;
-        border-radius: 999px; padding: 0.28rem 0.75rem;
-        font-size: 0.76rem; color: #64748b;
-    }
+    /* ── Legend — plain text, no pills ───────────── */
+    .legend { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: 0.75rem; align-items: center; border-top: 1px solid #DDD8CE; padding-top: 0.75rem; }
+    .lpill { background: transparent; border: none; font-size: 0.75rem; color: #7A766E; font-weight: 400; }
 
+    /* ── Inspector ────────────────────────────────── */
     .inspector-sentence {
-        background: linear-gradient(135deg, #f8f5ff 0%, #fff 100%);
-        border-radius: 14px;
-        padding: 1rem 1.2rem;
-        font-size: 0.97rem;
-        line-height: 1.75;
-        color: #1a1a2e;
-        border-left: 4px solid #ddd6fe;
-        margin-bottom: 1rem;
-        font-style: italic;
+        background: transparent; border-left: 2px solid #DDD8CE;
+        padding: 0.4rem 1rem 0.4rem 1rem; font-size: 0.97rem;
+        line-height: 1.8; color: #1C1C1C;
+        margin-bottom: 1rem; font-style: italic;
     }
-    .inspector-danger { border-left-color: #ef4444; background: linear-gradient(135deg,#fff5f5,#fff) !important; }
-    .inspector-warning { border-left-color: #f59e0b; background: linear-gradient(135deg,#fffbeb,#fff) !important; }
+    .inspector-danger { border-left-color: #EF4444 !important; }
+    .inspector-warning { border-left-color: #EAB308 !important; }
 
+    /* ── Badges — restrained ──────────────────────── */
     .badge {
-        display: inline-block; border-radius: 999px;
-        padding: 0.24rem 0.7rem;
-        font-size: 0.71rem; font-weight: 700;
-        margin-bottom: 0.7rem;
+        display: inline-flex; align-items: center; border-radius: 3px;
+        padding: 0.15rem 0.6rem; font-size: 0.7rem; font-weight: 500;
+        margin-bottom: 0.75rem; letter-spacing: 0.02em;
     }
-    .b-danger { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-    .b-warning { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
-    .b-done { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
-    .b-review { background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; }
+    .b-danger { background: #FFF5F5; color: #7F1D1D; border: 1px solid #FCA5A5; }
+    .b-warning { background: #FEFCE8; color: #78350F; border: 1px solid #FDE68A; }
+    .b-done { background: #EEF7F1; color: #14532D; border: 1px solid #86EFAC; }
+    .b-review { background: #F5F3FF; color: #4C1D95; border: 1px solid #C4B5FD; }
 
+    /* ── AI rewrite ───────────────────────────────── */
     .ai-new-sentence {
-        background: #f0fdf4;
-        border: 1.5px solid #86efac;
-        border-radius: 14px;
-        padding: 1rem 1.2rem;
-        font-size: 0.96rem;
-        line-height: 1.75;
-        color: #14532d;
-        margin-bottom: 0.8rem;
+        background: #EEF7F1; border-left: 3px solid #22C55E;
+        border-radius: 0 4px 4px 0;
+        padding: 0.9rem 1.25rem; font-size: 0.95rem;
+        line-height: 1.8; color: #14532D; margin-bottom: 1rem;
     }
-    .source-card {
-        background: linear-gradient(135deg, #f8fbff 0%, #f5f3ff 100%);
-        border: 1px solid #c4b5fd;
-        border-radius: 14px;
-        padding: 0.8rem 1rem;
-        margin-bottom: 0.6rem;
-    }
-    .source-name {
-        font-weight: 700; font-size: 0.9rem;
-        color: #5b21b6; margin-bottom: 0.2rem;
-    }
-    .source-desc { font-size: 0.82rem; color: #475569; line-height: 1.5; }
 
+    /* ── Source cards — borderless rows ──────────── */
+    .source-card {
+        background: transparent; border: none;
+        border-top: 1px solid #DDD8CE;
+        border-radius: 0; padding: 0.85rem 0; margin-bottom: 0;
+    }
+    .source-name { font-weight: 600; font-size: 0.87rem; color: #1C1C1C; margin-bottom: 0.2rem; }
+    .source-desc { font-size: 0.8rem; color: #7A766E; line-height: 1.55; }
+
+    /* ── Editorial Desk ───────────────────────────── */
     .chat-box {
-        display: flex; flex-direction: column;
-        gap: 0.6rem; max-height: 260px;
-        overflow-y: auto; padding: 0.2rem 0 0.4rem 0;
+        display: flex; flex-direction: column; gap: 0.75rem;
+        max-height: 300px; overflow-y: auto; padding: 0.25rem 0 0.5rem;
     }
     .cb-user {
-        background: #1a1a2e; color: #fff;
-        border-radius: 16px 16px 4px 16px;
-        padding: 0.65rem 1rem; font-size: 0.85rem;
-        line-height: 1.55; max-width: 85%; margin-left: auto;
+        background: #1C1C1C; color: #F5F1E8;
+        border-radius: 14px 14px 3px 14px;
+        padding: 0.6rem 1rem; font-size: 0.84rem;
+        line-height: 1.6; max-width: 80%; margin-left: auto;
     }
     .cb-ai {
-        background: #f1f4f8;
-        border: 1px solid #dde3ec;
-        color: #1a1a2e;
-        border-radius: 16px 16px 16px 4px;
-        padding: 0.65rem 1rem; font-size: 0.85rem;
-        line-height: 1.55; max-width: 85%;
+        background: #EDE9E2; color: #1C1C1C;
+        border-radius: 3px 14px 14px 14px;
+        padding: 0.6rem 1rem; font-size: 0.84rem;
+        line-height: 1.6; max-width: 80%;
     }
-    .cn { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; margin-bottom: 0.2rem; }
-    .cn-r { text-align: right; color: #94a3b8; }
-    .cn-ai { color: #1a1a2e !important; }
+    .cn { font-size: 0.63rem; font-weight: 500; color: #A8A49C; margin-bottom: 0.15rem; letter-spacing: 0.03em; }
+    .cn-r { text-align: right; }
+    .cn-ai { color: #8B6914 !important; }
 
-    .chat-input-row {
-        display: flex; align-items: center; gap: 0.5rem;
-        background: #f1f4f8; border: 1.5px solid #dde3ec;
-        border-radius: 14px; padding: 0.3rem 0.4rem 0.3rem 1rem;
-        margin-top: 0.7rem;
-    }
-
-    .chip-row { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.6rem; }
-    .chip button {
-        background: #fff !important; color: #1a1a2e !important;
-        border: 1.5px solid #dde3ec !important;
-        border-radius: 999px !important;
-        font-size: 0.78rem !important; font-weight: 500 !important;
-        padding: 0.3rem 0.85rem !important;
-    }
-    .chip button:hover { background: #f1f4f8 !important; border-color: #94a3b8 !important; }
-
-    .clog-card {
-        background: #fff; border: 1px solid #e4e1db;
-        border-radius: 18px; padding: 1.3rem 1.4rem;
-        margin-bottom: 1rem;
-        box-shadow: 0 2px 10px rgba(26,26,46,0.04);
-    }
-    .diff-b {
-        background: #fff5f5; border-left: 4px solid #ef4444;
-        border-radius: 0 12px 12px 0;
-        padding: 0.75rem 1rem; font-size: 0.9rem;
-        color: #7f1d1d; line-height: 1.65; margin-bottom: 0.5rem;
-    }
-    .diff-a {
-        background: #f0fdf4; border-left: 4px solid #22c55e;
-        border-radius: 0 12px 12px 0;
-        padding: 0.75rem 1rem; font-size: 0.9rem;
-        color: #14532d; line-height: 1.65;
-    }
-    .diff-lbl {
-        font-size: 0.66rem; font-weight: 700;
-        text-transform: uppercase; letter-spacing: 0.09em;
-        margin-bottom: 0.3rem;
-    }
-
+    /* ── Inputs — editorial, paper-like ──────────── */
     textarea, .stTextArea textarea {
-        background: #fff !important; color: #1a1a2e !important;
-        border-radius: 14px !important; border: 1.5px solid #e4e1db !important;
-        font-family: 'Inter', sans-serif !important; font-size: 0.95rem !important;
+        background: #FAF7F0 !important; color: #1C1C1C !important;
+        border-radius: 4px !important; border: 1px solid #DDD8CE !important;
+        font-family: Georgia, 'Times New Roman', serif !important;
+        font-size: 0.97rem !important; line-height: 1.8 !important;
+        box-shadow: none !important; padding: 1rem 1.1rem !important;
+    }
+    textarea:focus, .stTextArea textarea:focus {
+        border-color: #8B6914 !important; box-shadow: none !important; outline: none !important;
     }
     .stTextInput input {
-        background: transparent !important;
-        color: #1a1a2e !important;
-        border-radius: 10px !important;
-        border: none !important;
-        box-shadow: none !important;
-        font-family: 'Inter', sans-serif !important;
+        background: #FAF7F0 !important; color: #1C1C1C !important;
+        border-radius: 4px !important; border: 1px solid #DDD8CE !important;
+        box-shadow: none !important; font-family: 'Inter', sans-serif !important;
+        font-size: 0.9rem !important;
     }
-    .stTextInput input::placeholder { color: #94a3b8 !important; }
+    .stTextInput input:focus { border-color: #8B6914 !important; box-shadow: none !important; outline: none !important; }
+    .stTextInput input::placeholder { color: #B8B3AB !important; }
 
+    /* ── Buttons — one dark primary, rest subtle ──── */
     .stButton > button {
-        border-radius: 10px !important; padding: 0.55rem 1.1rem !important;
-        border: none !important;
-        background: linear-gradient(135deg, #2d1b69 0%, #1a1a2e 100%) !important;
-        color: #fff !important; font-weight: 600 !important;
-        font-size: 0.87rem !important; font-family: 'Inter', sans-serif !important;
-        transition: all 0.2s; box-shadow: 0 2px 8px rgba(45,27,105,0.25) !important;
+        border-radius: 4px !important; padding: 0.48rem 1rem !important;
+        border: 1px solid #C8C3BB !important;
+        background: #FAF7F0 !important; color: #4A4640 !important;
+        font-weight: 500 !important; font-size: 0.83rem !important;
+        font-family: 'Inter', sans-serif !important;
+        transition: all 0.15s; box-shadow: none !important;
     }
-    .stButton > button:hover {
-        background: linear-gradient(135deg, #3d2b89 0%, #2d2d4e 100%) !important;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 14px rgba(45,27,105,0.4) !important;
-    }
+    .stButton > button:hover { background: #EDE9E2 !important; border-color: #A8A49C !important; }
+    /* Primary — Analyze article */
+    div[data-testid="stVerticalBlock"] div[data-testid="stButton"] button[kind="primary"],
+    button[key="analyze_btn"] { background: #1C1C1C !important; color: #F5F1E8 !important; border-color: #1C1C1C !important; }
 
-    section[data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #1a1a2e 0%, #2d1b69 100%);
-        border-right: none;
-    }
-    section[data-testid="stSidebar"] * { color: #c4b5fd !important; }
-    section[data-testid="stSidebar"] h3 { color: #f0c95a !important; font-family: 'Playfair Display', serif !important; }
-    section[data-testid="stSidebar"] strong { color: #fff !important; }
+    /* ── Sidebar ──────────────────────────────────── */
+    section[data-testid="stSidebar"] { background: #1C1C1C; border-right: 1px solid #2A2A2A; }
+    section[data-testid="stSidebar"] * { color: #D5D0C8 !important; }
+    section[data-testid="stSidebar"] h3 { color: #F5F1E8 !important; font-family: 'Playfair Display', serif !important; }
+    section[data-testid="stSidebar"] strong { color: #C9A84C !important; }
     section[data-testid="stSidebar"] .stButton > button {
-        background: rgba(124,58,237,0.3) !important; color: #e9d5ff !important;
-        border: 1px solid rgba(167,139,250,0.4) !important;
+        background: rgba(245,241,232,0.05) !important; color: #C9C5BC !important;
+        border: 1px solid rgba(245,241,232,0.12) !important;
     }
     section[data-testid="stSidebar"] .stButton > button:hover {
-        background: rgba(124,58,237,0.5) !important;
+        background: rgba(245,241,232,0.1) !important; transform: none;
     }
 
-    .stSelectbox > div > div {
-        border-radius: 10px !important; border: 1.5px solid #e4e1db !important;
-        background: #fff !important;
-    }
-    hr { border-color: #e4e1db !important; }
+    /* ── Misc ─────────────────────────────────────── */
+    .stSelectbox > div > div { border-radius: 4px !important; border: 1px solid #DDD8CE !important; background: #FAF7F0 !important; }
+    hr { border-color: #DDD8CE !important; }
+    .stExpander { border: 1px solid #DDD8CE !important; border-radius: 4px !important; background: transparent !important; box-shadow: none !important; }
+    .diff-b { background: #FFF5F5; border-left: 2px solid #EF4444; padding: 0.75rem 1rem; font-size: 0.9rem; color: #7F1D1D; line-height: 1.65; margin-bottom: 0.5rem; }
+    .diff-a { background: #EEF7F1; border-left: 2px solid #22C55E; padding: 0.75rem 1rem; font-size: 0.9rem; color: #14532D; line-height: 1.65; }
+    .diff-lbl { font-size: 0.66rem; font-weight: 500; letter-spacing: 0.05em; margin-bottom: 0.3rem; color: #A8A49C; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -430,7 +334,7 @@ def analyze_sentence(sentence: str) -> Dict[str, Any]:
         reasons.append("Future language combined with a past date — strongly suggests it is outdated.")
 
     score = clamp(score, 5, 100)
-    label = "danger" if score < 50 else "warning" if score < 80 else "safe"
+    label = "danger" if score < 50 else "warning" if score < 72 else "safe"
     explanation = " ".join(reasons) if reasons else "No strong signs of temporal risk detected."
 
     return {
@@ -733,18 +637,60 @@ DEMO = (
 # SESSION STATE
 # --------------------------------------------------
 DEFAULT_STATE = {
-    "article_text": DEMO,
+    "article_text": "",
     "results": [],
     "analyzed": False,
     "selected_sentence": None,
     "rewrites": {},
     "research_result": None,
     "research_error": None,
+    "chat_messages": [],
 }
 
 for key, value in DEFAULT_STATE.items():
     if key not in st.session_state:
         st.session_state[key] = value
+
+# --------------------------------------------------
+# EDITORIAL DESK
+# --------------------------------------------------
+def _do_chat(question: str) -> None:
+    st.session_state.chat_messages.append({"role": "user", "content": question})
+    answer = ask_editorial_chat(question, st.session_state.article_text)
+    st.session_state.chat_messages.append({"role": "assistant", "content": answer})
+
+
+def _render_editorial_desk() -> None:
+    st.markdown('<div class="card" style="border-top:3px solid #c9a84c;margin-top:1.2rem;">', unsafe_allow_html=True)
+    st.markdown('<div class="slabel"><span class="slabel-dot"></span>Editorial Desk</div>', unsafe_allow_html=True)
+
+    msgs = st.session_state.get("chat_messages", [])
+    if msgs:
+        parts = []
+        for m in msgs[-8:]:
+            if m["role"] == "user":
+                parts.append(f"<div class='cn cn-r'>You</div><div class='cb-user'>{escape(m['content'])}</div>")
+            else:
+                parts.append(f"<div class='cn cn-ai'>TimeTravel</div><div class='cb-ai'>{escape(m['content'])}</div>")
+        st.markdown(f"<div class='chat-box'>{''.join(parts)}</div>", unsafe_allow_html=True)
+
+    ci1, ci2 = st.columns([5, 1])
+    with ci1:
+        user_q = st.text_input(
+            "Ask", key="chat_input_field",
+            label_visibility="collapsed",
+            placeholder="Ask about this article...",
+        )
+    with ci2:
+        send = st.button("Send", key="chat_send_btn", use_container_width=True)
+
+    if send and user_q.strip():
+        with st.spinner("Researching..."):
+            _do_chat(user_q.strip())
+        st.rerun()
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
 
 # --------------------------------------------------
 # SIDEBAR
@@ -757,18 +703,7 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
 
-    if st.button("Load demo article", use_container_width=True):
-        st.session_state.update({
-            "article_text": DEMO,
-            "results": [],
-            "analyzed": False,
-            "rewrites": {},
-            "selected_sentence": None,
-            "research_result": None,
-            "research_error": None,
-        })
-
-    if st.button("Clear article", use_container_width=True):
+    if st.button("Load new PDF", use_container_width=True):
         st.session_state.update({
             "article_text": "",
             "results": [],
@@ -777,15 +712,16 @@ with st.sidebar:
             "selected_sentence": None,
             "research_result": None,
             "research_error": None,
+            "chat_messages": [],
         })
 
     st.markdown("---")
     st.markdown("### How it works")
     st.markdown(
-        "1. Paste article & **Analyze**\n"
-        "2. **Click** a flagged sentence\n"
-        "3. Click **Research latest evidence**\n"
-        "4. Review status, confidence, and sources\n"
+        "1. Upload a **PDF article**\n"
+        "2. Click **Analyze**\n"
+        "3. **Click** a flagged sentence\n"
+        "4. Click **Research latest evidence**\n"
         "5. Accept only strong rewrites"
     )
     st.markdown("---")
@@ -801,14 +737,14 @@ with st.sidebar:
 st.markdown("""
 <div class="topbar">
     <div class="topbar-logo">Time<span>Travel</span></div>
-    <div class="topbar-tag">Editorial AI · Prototype</div>
+    <div class="topbar-tag">Editorial AI &nbsp;·&nbsp; Prototype</div>
 </div>
 """, unsafe_allow_html=True)
 
 st.markdown("""
 <div class="page-header">
     <div class="page-title">Temporal Trust Checker</div>
-    <div class="page-sub">Detect outdated claims, research the latest evidence on the web, and replace risky wording with source-backed updates.</div>
+    <div class="page-sub">Detect outdated claims, research the latest evidence, and replace risky wording with source-backed rewrites.</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -868,23 +804,94 @@ def source_cards_html(sources: List[Dict[str, Any]]) -> str:
     return "".join(cards)
 
 # --------------------------------------------------
-# TABS
+# ARTICLE INPUT
 # --------------------------------------------------
 if True:
-    inc, btnc = st.columns([5.5, 1], gap="small")
-    with inc:
-        article_text = st.text_area(
-            "Article",
-            value=st.session_state.article_text,
-            height=110,
-            label_visibility="collapsed",
-            placeholder="Paste your article here...",
-        )
-        st.session_state.article_text = article_text
+    if not st.session_state.article_text:
+        import pypdf, io, urllib.request
+        st.markdown("""
+        <div style='padding:2.5rem 0 1.75rem;border-bottom:1px solid #DDD8CE;margin-bottom:1.75rem;'>
+            <div style='font-family:"Playfair Display",serif;font-size:2rem;font-weight:700;color:#1C1C1C;margin-bottom:0.4rem;line-height:1.2;'>Load your article</div>
+            <div style='font-size:0.87rem;color:#7A766E;line-height:1.65;'>Paste a URL to fetch from the web, or upload a PDF.</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    with btnc:
-        st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
-        if st.button("🔍 Analyze", use_container_width=True):
+        url_col, pdf_col = st.columns(2, gap="large")
+
+        with url_col:
+            st.markdown("<p style='font-size:0.78rem;font-weight:400;color:#7A766E;margin:0 0 0.5rem;'>Article URL</p>", unsafe_allow_html=True)
+            url_input = st.text_input("URL", label_visibility="collapsed", placeholder="https://...", key="url_input")
+            if st.button("Fetch article", use_container_width=True, key="fetch_url_btn"):
+                if url_input.strip():
+                    try:
+                        from html.parser import HTMLParser
+                        class _TextExtractor(HTMLParser):
+                            def __init__(self):
+                                super().__init__()
+                                self._skip = False
+                                self.chunks = []
+                            def handle_starttag(self, tag, _attrs):
+                                if tag in ("script", "style", "nav", "header", "footer", "aside"):
+                                    self._skip = True
+                            def handle_endtag(self, tag):
+                                if tag in ("script", "style", "nav", "header", "footer", "aside"):
+                                    self._skip = False
+                            def handle_data(self, data):
+                                if not self._skip and data.strip():
+                                    self.chunks.append(data.strip())
+                        req = urllib.request.Request(url_input.strip(), headers={"User-Agent": "Mozilla/5.0"})
+                        with urllib.request.urlopen(req, timeout=10) as r:
+                            raw = r.read()
+                        parser = _TextExtractor()
+                        parser.feed(raw.decode("utf-8", errors="replace"))
+                        fetched = " ".join(parser.chunks).strip()
+                        if fetched:
+                            st.session_state.article_text = fetched
+                            st.session_state.analyzed = False
+                            st.session_state.results = []
+                            st.session_state.rewrites = {}
+                            st.session_state.selected_sentence = None
+                            st.session_state.research_result = None
+                            st.rerun()
+                        else:
+                            st.error("Could not extract text from that URL.")
+                    except Exception as e:
+                        st.error(f"Could not fetch URL: {e}")
+
+        with pdf_col:
+            st.markdown("<p style='font-size:0.78rem;font-weight:400;color:#7A766E;margin:0 0 0.5rem;'>Upload PDF</p>", unsafe_allow_html=True)
+            uploaded_pdf = st.file_uploader("Upload PDF", type=["pdf"], label_visibility="collapsed", key="pdf_upload")
+            if uploaded_pdf is not None:
+                try:
+                    reader = pypdf.PdfReader(io.BytesIO(uploaded_pdf.read()))
+                    pages_text = [page.extract_text() or "" for page in reader.pages]
+                    full_text = " ".join(pages_text).strip()
+                    if full_text:
+                        st.session_state.article_text = full_text
+                        st.session_state.analyzed = False
+                        st.session_state.results = []
+                        st.session_state.rewrites = {}
+                        st.session_state.selected_sentence = None
+                        st.session_state.research_result = None
+                        st.rerun()
+                    else:
+                        st.error("Could not extract text — PDF may be scanned/image-based.")
+                except Exception as e:
+                    st.error(f"Could not read PDF: {e}")
+
+    article_text = st.text_area(
+        "Article",
+        value=st.session_state.article_text,
+        height=130,
+        label_visibility="collapsed",
+        placeholder="Paste your article here, or load one above…",
+    )
+    st.session_state.article_text = article_text
+
+    bcol, _ = st.columns([1, 3])
+    with bcol:
+        st.markdown('<style>button[kind="secondaryFormSubmit"], .stButton button { } #analyze_btn, [data-testid="stButton"]:has([data-testid="baseButton-secondary"][key="analyze_btn"]) button { background: #1C1C1C !important; color: #F5F1E8 !important; border-color: #1C1C1C !important; font-weight: 600 !important; padding: 0.6rem 1.25rem !important; font-size: 0.88rem !important; letter-spacing: 0.02em !important; } </style>', unsafe_allow_html=True)
+        if st.button("Analyze article", use_container_width=True, key="analyze_btn"):
             if article_text.strip():
                 sents = split_sentences(article_text)
                 st.session_state.results = [analyze_sentence(s) for s in sents]
@@ -916,7 +923,7 @@ if True:
             )
         with mc2:
             st.markdown(
-                f"""<div class="mcard" style="border-top:3px solid #ef4444;">
+                f"""<div class="mcard">
                     <div class="mval mval-red">{len(risky)}</div>
                     <div class="mlbl">Still Flagged</div>
                 </div>""",
@@ -924,22 +931,23 @@ if True:
             )
         with mc3:
             st.markdown(
-                f"""<div class="mcard" style="border-top:3px solid #7c3aed;">
-                    <div class="mval" style="color:#7c3aed;">{len(results)}</div>
+                f"""<div class="mcard">
+                    <div class="mval mval-purple">{len(results)}</div>
                     <div class="mlbl">Total Sentences</div>
                 </div>""",
                 unsafe_allow_html=True,
             )
         with mc4:
             st.markdown(
-                f"""<div class="mcard" style="border-top:3px solid #22c55e;">
+                f"""<div class="mcard">
                     <div class="mval mval-green">{rewrites_done}</div>
                     <div class="mlbl">Accepted</div>
                 </div>""",
                 unsafe_allow_html=True,
             )
 
-        st.markdown("<div style='height:0.2rem'></div>", unsafe_allow_html=True)
+        _render_editorial_desk()
+
         if True:
             st.markdown('<div style="position:fixed;top:-9999px;left:-9999px;opacity:0;pointer-events:none;">', unsafe_allow_html=True)
             btn_clicks = [st.button(f"§{i}§", key=f"hbtn_{i}") for i in range(len(results))]
@@ -955,22 +963,16 @@ if True:
                     st.session_state.research_error = None
                     st.rerun()
 
-            st.markdown('<div class="card" style="border-top:3px solid #7c3aed;">', unsafe_allow_html=True)
-            st.markdown(
-                '<div class="slabel"><span class="slabel-dot"></span>Analysed Article — click a highlighted sentence</div>',
-                unsafe_allow_html=True,
-            )
-
             article_html = render_article(results, st.session_state.rewrites, st.session_state.selected_sentence)
             component_html = f"""<!DOCTYPE html><html><head><style>
-                body{{margin:0;padding:1rem 1.2rem;font-family:'Inter',system-ui,sans-serif;font-size:0.97rem;line-height:2.2;color:#1a1a2e;background:transparent;}}
-                .s-safe{{display:inline;color:#1a1a2e;}}
-                .s-rewritten{{display:inline;background:#f0fdf4;color:#14532d;border:1.5px solid #86efac;border-radius:6px;padding:2px 8px;margin:1px;font-weight:500;}}
-                .s-warning{{display:inline;background:#fffbeb;color:#78450a;border:1.5px solid #fcd34d;border-radius:6px;padding:2px 8px;margin:1px;cursor:pointer;transition:all 0.15s;}}
-                .s-warning:hover{{background:#fef3c7;border-color:#f59e0b;box-shadow:0 2px 8px rgba(245,158,11,0.3);}}
-                .s-danger{{display:inline;background:#fff1f1;color:#7f1d1d;border:1.5px solid #fca5a5;border-radius:6px;padding:2px 8px;margin:1px;cursor:pointer;transition:all 0.15s;}}
-                .s-danger:hover{{background:#fee2e2;border-color:#ef4444;box-shadow:0 2px 8px rgba(239,68,68,0.3);}}
-                .s-selected{{outline:2.5px solid #1a1a2e!important;outline-offset:2px;box-shadow:0 2px 12px rgba(26,26,46,0.22)!important;}}
+                body{{margin:0;padding:1.5rem 1.75rem;font-family:Georgia,'Times New Roman',serif;font-size:1rem;line-height:2;color:#1C1C1C;background:#FAF7F0;}}
+                .s-safe{{display:inline;color:#1C1C1C;}}
+                .s-rewritten{{display:inline;background:#EEF7F1;color:#14532D;border-bottom:1.5px solid #4ADE80;padding:0 3px;font-weight:500;}}
+                .s-warning{{display:inline;background:#FEFCE8;color:#78350F;border-bottom:1.5px solid #EAB308;padding:0 3px;cursor:pointer;transition:background 0.1s;}}
+                .s-warning:hover{{background:#FEF9C3;}}
+                .s-danger{{display:inline;background:#FFF5F5;color:#7F1D1D;border-bottom:1.5px solid #EF4444;padding:0 3px;cursor:pointer;transition:background 0.1s;}}
+                .s-danger:hover{{background:#FEE2E2;}}
+                .s-selected{{outline:1.5px solid #1C1C1C!important;outline-offset:2px;border-radius:2px;}}
             </style></head><body>{article_html}<script>
                 function hideSecretBtns() {{
                     try {{
@@ -1020,17 +1022,15 @@ if True:
 
             if not risky:
                 st.markdown(
-                    "<div style='margin-top:0.8rem;font-size:0.88rem;color:#22c55e;font-weight:600;'>✅ All flagged sentences have been handled.</div>",
+                    "<div style='margin-top:0.75rem;font-size:0.85rem;color:#16A34A;font-weight:500;'>✅ All flagged sentences have been handled.</div>",
                     unsafe_allow_html=True,
                 )
-            st.markdown("</div>", unsafe_allow_html=True)
 
             sel_sentence = st.session_state.selected_sentence
             sel_item = next((r for r in results if r["sentence"] == sel_sentence), None)
 
             if sel_item:
                 st.markdown("<div style='height:0.7rem'></div>", unsafe_allow_html=True)
-                st.markdown('<div class="card">', unsafe_allow_html=True)
                 badge_cls = "b-danger" if sel_item["label"] == "danger" else "b-warning"
                 badge_txt = "🔴 Likely outdated" if sel_item["label"] == "danger" else "🟡 Time-sensitive"
                 q_cls = "inspector-danger" if sel_item["label"] == "danger" else "inspector-warning"
@@ -1118,15 +1118,15 @@ if True:
                             st.session_state.research_error = None
                             st.rerun()
 
-                st.markdown("</div>", unsafe_allow_html=True)
 
     else:
         st.markdown(
             """
-            <div style='text-align:center;padding:4rem 1rem;color:#94a3b8;'>
-                <div style='font-size:2.5rem;margin-bottom:0.6rem;'>🕰️</div>
-                <div style='font-size:1rem;font-weight:600;color:#64748b;margin-bottom:0.3rem;'>Paste an article and click Analyze</div>
-                <div style='font-size:0.87rem;'>Flagged sentences will be highlighted in yellow and red.<br>Select one, research the latest evidence, and accept a source-backed rewrite.</div>
+            <div style='padding:3rem 0;border-top:1px solid #DDD8CE;'>
+                <div style='font-size:0.95rem;color:#A8A49C;line-height:1.7;'>
+                    Once you load an article and click <em>Analyze article</em>, flagged sentences will appear highlighted below.
+                    Select one to inspect it, research the latest evidence, and accept a source-backed rewrite.
+                </div>
             </div>
             """,
             unsafe_allow_html=True,
